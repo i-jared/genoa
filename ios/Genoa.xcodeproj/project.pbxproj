@@ -1,0 +1,670 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		01BB3D96120C08A845B3BE73 /* ConversationTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BC003FB133472654065103 /* ConversationTools.swift */; };
+		0352DC7F1C8FF709395E4CDC /* PlaybackController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 139805B6841DB1144D0202D8 /* PlaybackController.swift */; };
+		0A0B54D8688820031B27BF88 /* LocalStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BFD75DC962E7B7FD3054BE7 /* LocalStoreTests.swift */; };
+		0A3E7565669746E2069FEA8F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AFC81A932AB3372DF12F25E3 /* PrivacyInfo.xcprivacy */; };
+		195307A1EBA031CF8C2A30BB /* WatchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEC6E484D9673607A9BA4736 /* WatchScreen.swift */; };
+		22138FCB67FF2DFED2F65C32 /* GenoaFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FED8B0CBA1BD817717BF0C12 /* GenoaFlowTests.swift */; };
+		2D2BD671734C8D4A5035726D /* RecorderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BF6627F25ADBBC9FCE29A66 /* RecorderScreen.swift */; };
+		2FA5367311A4FC62A458C6C8 /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3043EEDF28ED47B7746F1510 /* API.swift */; };
+		35A5D8C7F90C42FACB239E81 /* SessionVaultTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E596AEEAFF0FE5059B9CFA8A /* SessionVaultTests.swift */; };
+		36443653BA5E978E987BDDBE /* BackgroundTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F82C558F5810D9720090D7FC /* BackgroundTransfer.swift */; };
+		3E70FB7EF2E5B3DC8D67F876 /* ConversationsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49AEDE4BABF681412AC2C193 /* ConversationsScreen.swift */; };
+		42F04D0BB28248E72694C88C /* CaptureEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC135065045840C0D6455E9 /* CaptureEngine.swift */; };
+		4EBF42958E7F3A385882C558 /* ReactionRail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 691C997E0404B9B0DCA18587 /* ReactionRail.swift */; };
+		692BE42E91F719E9221F749B /* LocalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65916675199A77E293676E21 /* LocalStore.swift */; };
+		71183D5215C687F931EA7F2B /* IntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719D7C51DFF78831C018D80C /* IntegrationTests.swift */; };
+		8E02CA11EF25F25293B63F2B /* LiveSegmentSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4D5194D01D501EEB4E03B45 /* LiveSegmentSink.swift */; };
+		AA177D64C042C2DE681C0346 /* GenoaTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = E874A7A6054836A89E732763 /* GenoaTheme.swift */; };
+		B7634AEA06C43DC8902CA0D3 /* AuthScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80738848F8501897F4957D2F /* AuthScreen.swift */; };
+		C2885ABB38D0011AFA1C0834 /* WatchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4234525C2206C7A5E0327587 /* WatchModel.swift */; };
+		C803D505732FC71DCA375864 /* ProfileScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17597683698D63B0C1F44FDF /* ProfileScreen.swift */; };
+		CBD49527B4E9D574AF9165EA /* Outbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 028BECAEEC9B125D79B03F5D /* Outbox.swift */; };
+		D3124121F9C6BCE1C7D23E51 /* GenoaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECB8A0BC4E2C3C3C3E1F42C1 /* GenoaApp.swift */; };
+		D6B23544C5A5C22AD0B56161 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BECE611FA27076E5BDC4AE67 /* AppModel.swift */; };
+		D87EBC7E57AA9D7F5CFB8C2F /* SessionVault.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F9FE3B4661A5D1F0840E342 /* SessionVault.swift */; };
+		DA69FD94176E88EA0B9F5F4B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0501FCC8447886881AA1DCD2 /* Models.swift */; };
+		E15A578B15FFC76B99A6274E /* MediaLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 413AA17ED2B97D8A61FB7AC0 /* MediaLibrary.swift */; };
+		E8504056700D78672ED44B3E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6D332ED59A98802F08653486 /* Assets.xcassets */; };
+		FF6EF5354E00B49555261E68 /* Thumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3212FDE58DE3FF5F9BCF06 /* Thumbnails.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		213F1776E6C6843CE8503132 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E46D0395BAF25A16F72DED82 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DD165E7FCDD7FA52FF33D811;
+			remoteInfo = Genoa;
+		};
+		9DC51ED7BC8ADB4DED5D9717 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E46D0395BAF25A16F72DED82 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DD165E7FCDD7FA52FF33D811;
+			remoteInfo = Genoa;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		028BECAEEC9B125D79B03F5D /* Outbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Outbox.swift; sourceTree = "<group>"; };
+		0501FCC8447886881AA1DCD2 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		0BF6627F25ADBBC9FCE29A66 /* RecorderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderScreen.swift; sourceTree = "<group>"; };
+		11BC003FB133472654065103 /* ConversationTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationTools.swift; sourceTree = "<group>"; };
+		139805B6841DB1144D0202D8 /* PlaybackController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackController.swift; sourceTree = "<group>"; };
+		17597683698D63B0C1F44FDF /* ProfileScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileScreen.swift; sourceTree = "<group>"; };
+		2BFD75DC962E7B7FD3054BE7 /* LocalStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalStoreTests.swift; sourceTree = "<group>"; };
+		2F9FE3B4661A5D1F0840E342 /* SessionVault.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVault.swift; sourceTree = "<group>"; };
+		3043EEDF28ED47B7746F1510 /* API.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = API.swift; sourceTree = "<group>"; };
+		3D9E5786EDE451039F315BD5 /* GenoaTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GenoaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4117DBF442372F12ADEA18F1 /* Genoa.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Genoa.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		413AA17ED2B97D8A61FB7AC0 /* MediaLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLibrary.swift; sourceTree = "<group>"; };
+		4234525C2206C7A5E0327587 /* WatchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchModel.swift; sourceTree = "<group>"; };
+		49AEDE4BABF681412AC2C193 /* ConversationsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationsScreen.swift; sourceTree = "<group>"; };
+		49B2BC5F17E42298B1E82B91 /* GenoaUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GenoaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		528EF6ADF63F8CC67734E4FF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		65916675199A77E293676E21 /* LocalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalStore.swift; sourceTree = "<group>"; };
+		691C997E0404B9B0DCA18587 /* ReactionRail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionRail.swift; sourceTree = "<group>"; };
+		6D332ED59A98802F08653486 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		719D7C51DFF78831C018D80C /* IntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrationTests.swift; sourceTree = "<group>"; };
+		7A3212FDE58DE3FF5F9BCF06 /* Thumbnails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Thumbnails.swift; sourceTree = "<group>"; };
+		80738848F8501897F4957D2F /* AuthScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthScreen.swift; sourceTree = "<group>"; };
+		AFC81A932AB3372DF12F25E3 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		BEC6E484D9673607A9BA4736 /* WatchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchScreen.swift; sourceTree = "<group>"; };
+		BECE611FA27076E5BDC4AE67 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		D4FCA2F162988AB65ECA9EC5 /* Genoa.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Genoa.entitlements; sourceTree = "<group>"; };
+		E4D5194D01D501EEB4E03B45 /* LiveSegmentSink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSegmentSink.swift; sourceTree = "<group>"; };
+		E596AEEAFF0FE5059B9CFA8A /* SessionVaultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVaultTests.swift; sourceTree = "<group>"; };
+		E874A7A6054836A89E732763 /* GenoaTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenoaTheme.swift; sourceTree = "<group>"; };
+		ECB8A0BC4E2C3C3C3E1F42C1 /* GenoaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenoaApp.swift; sourceTree = "<group>"; };
+		F82C558F5810D9720090D7FC /* BackgroundTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTransfer.swift; sourceTree = "<group>"; };
+		FAC135065045840C0D6455E9 /* CaptureEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureEngine.swift; sourceTree = "<group>"; };
+		FED8B0CBA1BD817717BF0C12 /* GenoaFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenoaFlowTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		068D387064C7D4D92DFF1DAA /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				3043EEDF28ED47B7746F1510 /* API.swift */,
+				F82C558F5810D9720090D7FC /* BackgroundTransfer.swift */,
+				65916675199A77E293676E21 /* LocalStore.swift */,
+				0501FCC8447886881AA1DCD2 /* Models.swift */,
+				028BECAEEC9B125D79B03F5D /* Outbox.swift */,
+				2F9FE3B4661A5D1F0840E342 /* SessionVault.swift */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		0BE70E61F02277AFD0E2B4CC /* GenoaUITests */ = {
+			isa = PBXGroup;
+			children = (
+				FED8B0CBA1BD817717BF0C12 /* GenoaFlowTests.swift */,
+			);
+			path = GenoaUITests;
+			sourceTree = "<group>";
+		};
+		289EBE48CBCD52703DF5116A /* App */ = {
+			isa = PBXGroup;
+			children = (
+				BECE611FA27076E5BDC4AE67 /* AppModel.swift */,
+				ECB8A0BC4E2C3C3C3E1F42C1 /* GenoaApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		355D5E0A780EEF68A2C92D5C /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				80738848F8501897F4957D2F /* AuthScreen.swift */,
+				49AEDE4BABF681412AC2C193 /* ConversationsScreen.swift */,
+				11BC003FB133472654065103 /* ConversationTools.swift */,
+				17597683698D63B0C1F44FDF /* ProfileScreen.swift */,
+				691C997E0404B9B0DCA18587 /* ReactionRail.swift */,
+				0BF6627F25ADBBC9FCE29A66 /* RecorderScreen.swift */,
+				4234525C2206C7A5E0327587 /* WatchModel.swift */,
+				BEC6E484D9673607A9BA4736 /* WatchScreen.swift */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		496881D424A7ABA7A81CF962 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4117DBF442372F12ADEA18F1 /* Genoa.app */,
+				3D9E5786EDE451039F315BD5 /* GenoaTests.xctest */,
+				49B2BC5F17E42298B1E82B91 /* GenoaUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7C648D4ED682E67780291F68 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				6D332ED59A98802F08653486 /* Assets.xcassets */,
+				D4FCA2F162988AB65ECA9EC5 /* Genoa.entitlements */,
+				528EF6ADF63F8CC67734E4FF /* Info.plist */,
+				AFC81A932AB3372DF12F25E3 /* PrivacyInfo.xcprivacy */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		996A5464AF991F0F53034BFE /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				E874A7A6054836A89E732763 /* GenoaTheme.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+		AF765BA8292E1355F86F74DE /* Media */ = {
+			isa = PBXGroup;
+			children = (
+				FAC135065045840C0D6455E9 /* CaptureEngine.swift */,
+				E4D5194D01D501EEB4E03B45 /* LiveSegmentSink.swift */,
+				413AA17ED2B97D8A61FB7AC0 /* MediaLibrary.swift */,
+				139805B6841DB1144D0202D8 /* PlaybackController.swift */,
+				7A3212FDE58DE3FF5F9BCF06 /* Thumbnails.swift */,
+			);
+			path = Media;
+			sourceTree = "<group>";
+		};
+		CD3F2E840F23B2AC487D7836 = {
+			isa = PBXGroup;
+			children = (
+				EDC61D344005C978FBC5A647 /* Genoa */,
+				F16BD7176DE8939952AEDA96 /* GenoaTests */,
+				0BE70E61F02277AFD0E2B4CC /* GenoaUITests */,
+				496881D424A7ABA7A81CF962 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		EDC61D344005C978FBC5A647 /* Genoa */ = {
+			isa = PBXGroup;
+			children = (
+				289EBE48CBCD52703DF5116A /* App */,
+				068D387064C7D4D92DFF1DAA /* Data */,
+				996A5464AF991F0F53034BFE /* Design */,
+				355D5E0A780EEF68A2C92D5C /* Features */,
+				AF765BA8292E1355F86F74DE /* Media */,
+				7C648D4ED682E67780291F68 /* Resources */,
+			);
+			path = Genoa;
+			sourceTree = "<group>";
+		};
+		F16BD7176DE8939952AEDA96 /* GenoaTests */ = {
+			isa = PBXGroup;
+			children = (
+				719D7C51DFF78831C018D80C /* IntegrationTests.swift */,
+				2BFD75DC962E7B7FD3054BE7 /* LocalStoreTests.swift */,
+				E596AEEAFF0FE5059B9CFA8A /* SessionVaultTests.swift */,
+			);
+			path = GenoaTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		35B4CADA8E81CF1D4B7847E6 /* GenoaUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8EB08F8A7D4040B52BA2E0DB /* Build configuration list for PBXNativeTarget "GenoaUITests" */;
+			buildPhases = (
+				6A514CA43E24644E530223EF /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1DC9807BF98074EA1AB41ED3 /* PBXTargetDependency */,
+			);
+			name = GenoaUITests;
+			packageProductDependencies = (
+			);
+			productName = GenoaUITests;
+			productReference = 49B2BC5F17E42298B1E82B91 /* GenoaUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		6D20574A63BA531FE0E45F05 /* GenoaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 44310CCFFF9FC4538A3B3AC0 /* Build configuration list for PBXNativeTarget "GenoaTests" */;
+			buildPhases = (
+				FBF6EF7A06B153C6B0D45D6A /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1E0DEBFA9303356EE9C58C1F /* PBXTargetDependency */,
+			);
+			name = GenoaTests;
+			packageProductDependencies = (
+			);
+			productName = GenoaTests;
+			productReference = 3D9E5786EDE451039F315BD5 /* GenoaTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		DD165E7FCDD7FA52FF33D811 /* Genoa */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 16FD0BEDB90E803F3189A45C /* Build configuration list for PBXNativeTarget "Genoa" */;
+			buildPhases = (
+				026CBD4B1921F255209B2C10 /* Sources */,
+				32FE2F9FBC2B28ABF0904233 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Genoa;
+			packageProductDependencies = (
+			);
+			productName = Genoa;
+			productReference = 4117DBF442372F12ADEA18F1 /* Genoa.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E46D0395BAF25A16F72DED82 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					35B4CADA8E81CF1D4B7847E6 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+						TestTargetID = DD165E7FCDD7FA52FF33D811;
+					};
+					6D20574A63BA531FE0E45F05 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					DD165E7FCDD7FA52FF33D811 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 1F8C4E4052415C5C0514E458 /* Build configuration list for PBXProject "Genoa" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = CD3F2E840F23B2AC487D7836;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 496881D424A7ABA7A81CF962 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DD165E7FCDD7FA52FF33D811 /* Genoa */,
+				6D20574A63BA531FE0E45F05 /* GenoaTests */,
+				35B4CADA8E81CF1D4B7847E6 /* GenoaUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		32FE2F9FBC2B28ABF0904233 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E8504056700D78672ED44B3E /* Assets.xcassets in Resources */,
+				0A3E7565669746E2069FEA8F /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		026CBD4B1921F255209B2C10 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2FA5367311A4FC62A458C6C8 /* API.swift in Sources */,
+				D6B23544C5A5C22AD0B56161 /* AppModel.swift in Sources */,
+				B7634AEA06C43DC8902CA0D3 /* AuthScreen.swift in Sources */,
+				36443653BA5E978E987BDDBE /* BackgroundTransfer.swift in Sources */,
+				42F04D0BB28248E72694C88C /* CaptureEngine.swift in Sources */,
+				01BB3D96120C08A845B3BE73 /* ConversationTools.swift in Sources */,
+				3E70FB7EF2E5B3DC8D67F876 /* ConversationsScreen.swift in Sources */,
+				D3124121F9C6BCE1C7D23E51 /* GenoaApp.swift in Sources */,
+				AA177D64C042C2DE681C0346 /* GenoaTheme.swift in Sources */,
+				8E02CA11EF25F25293B63F2B /* LiveSegmentSink.swift in Sources */,
+				692BE42E91F719E9221F749B /* LocalStore.swift in Sources */,
+				E15A578B15FFC76B99A6274E /* MediaLibrary.swift in Sources */,
+				DA69FD94176E88EA0B9F5F4B /* Models.swift in Sources */,
+				CBD49527B4E9D574AF9165EA /* Outbox.swift in Sources */,
+				0352DC7F1C8FF709395E4CDC /* PlaybackController.swift in Sources */,
+				C803D505732FC71DCA375864 /* ProfileScreen.swift in Sources */,
+				4EBF42958E7F3A385882C558 /* ReactionRail.swift in Sources */,
+				2D2BD671734C8D4A5035726D /* RecorderScreen.swift in Sources */,
+				D87EBC7E57AA9D7F5CFB8C2F /* SessionVault.swift in Sources */,
+				FF6EF5354E00B49555261E68 /* Thumbnails.swift in Sources */,
+				C2885ABB38D0011AFA1C0834 /* WatchModel.swift in Sources */,
+				195307A1EBA031CF8C2A30BB /* WatchScreen.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6A514CA43E24644E530223EF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				22138FCB67FF2DFED2F65C32 /* GenoaFlowTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FBF6EF7A06B153C6B0D45D6A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				71183D5215C687F931EA7F2B /* IntegrationTests.swift in Sources */,
+				0A0B54D8688820031B27BF88 /* LocalStoreTests.swift in Sources */,
+				35A5D8C7F90C42FACB239E81 /* SessionVaultTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1DC9807BF98074EA1AB41ED3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DD165E7FCDD7FA52FF33D811 /* Genoa */;
+			targetProxy = 9DC51ED7BC8ADB4DED5D9717 /* PBXContainerItemProxy */;
+		};
+		1E0DEBFA9303356EE9C58C1F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DD165E7FCDD7FA52FF33D811 /* Genoa */;
+			targetProxy = 213F1776E6C6843CE8503132 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1259F588B5DA0EAC7680E694 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.talkgenoa.GenoaTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Genoa.app/Genoa";
+			};
+			name = Debug;
+		};
+		78F1DAEB7DA91CA64FF98CAA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.talkgenoa.GenoaUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Genoa;
+			};
+			name = Debug;
+		};
+		85BC54D6E5CA41E03C05B26A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		8E7DF3C592482300F0182883 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.talkgenoa.GenoaTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Genoa.app/Genoa";
+			};
+			name = Release;
+		};
+		8EB8599143823505F4ECDAAD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.talkgenoa.GenoaUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Genoa;
+			};
+			name = Release;
+		};
+		B4319595EAB7A317045BCFB6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BDA276AC382CB570C00710A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APS_ENVIRONMENT = development;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Genoa/Resources/Genoa.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Genoa/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.talkgenoa.ios;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		EA6351721DC4F83786ED4969 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APS_ENVIRONMENT = production;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Genoa/Resources/Genoa.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Genoa/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.talkgenoa.ios;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		16FD0BEDB90E803F3189A45C /* Build configuration list for PBXNativeTarget "Genoa" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BDA276AC382CB570C00710A7 /* Debug */,
+				EA6351721DC4F83786ED4969 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1F8C4E4052415C5C0514E458 /* Build configuration list for PBXProject "Genoa" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				85BC54D6E5CA41E03C05B26A /* Debug */,
+				B4319595EAB7A317045BCFB6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		44310CCFFF9FC4538A3B3AC0 /* Build configuration list for PBXNativeTarget "GenoaTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1259F588B5DA0EAC7680E694 /* Debug */,
+				8E7DF3C592482300F0182883 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8EB08F8A7D4040B52BA2E0DB /* Build configuration list for PBXNativeTarget "GenoaUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				78F1DAEB7DA91CA64FF98CAA /* Debug */,
+				8EB8599143823505F4ECDAAD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E46D0395BAF25A16F72DED82 /* Project object */;
+}

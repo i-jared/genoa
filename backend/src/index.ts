@@ -76,7 +76,12 @@ app.get("/api/me", async (c) => {
     ...user,
     ai_consent: profile?.ai_consent ?? 0,
     notifications: profile?.notifications ?? 1,
-    capabilities: { ai: !!c.env.AI, push: !!c.env.FCM_SERVICE_ACCOUNT },
+    capabilities: {
+      ai: !!c.env.AI,
+      push: !!c.env.FCM_SERVICE_ACCOUNT,
+      apns: !!c.env.APNS_CREDENTIALS,
+      live_fmp4: true,
+    },
   });
 });
 app.patch("/api/me", async (c) => {
@@ -152,13 +157,26 @@ app.post("/api/join", async (c) => {
   return c.json({ id: invite.conversation_id });
 });
 app.put("/api/devices", async (c) => {
+  const { token, platform } = await body(
+    c,
+    z.object({
+      token: z.string().min(20).max(4096),
+      platform: z.enum(["android", "ios", "ios-sandbox"]).default("android"),
+    }),
+  );
+  await c.env.DB.prepare(
+    "INSERT INTO devices VALUES(?,?,?) ON CONFLICT(token) DO UPDATE SET user_id=excluded.user_id,platform=excluded.platform",
+  )
+    .bind(token, c.get("userId"), platform)
+    .run();
+  return c.json({ ok: true });
+});
+app.delete("/api/devices/current", async (c) => {
   const { token } = await body(
     c,
     z.object({ token: z.string().min(20).max(4096) }),
   );
-  await c.env.DB.prepare(
-    "INSERT INTO devices VALUES(?,?,'android') ON CONFLICT(token) DO UPDATE SET user_id=excluded.user_id",
-  )
+  await c.env.DB.prepare("DELETE FROM devices WHERE token=? AND user_id=?")
     .bind(token, c.get("userId"))
     .run();
   return c.json({ ok: true });

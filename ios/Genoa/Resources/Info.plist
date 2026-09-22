@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleDisplayName</key><string>Genoa</string>
+<key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+<key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+<key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
+<key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
+<key>LSRequiresIPhoneOS</key><true/>
+<key>UILaunchScreen</key><dict><key>UIColorName</key><string>Canvas</string></dict>
+<key>NSCameraUsageDescription</key><string>Record video messages for the people you choose.</string>
+<key>NSMicrophoneUsageDescription</key><string>Include your voice in video and voice messages.</string>
+<key>NSPhotoLibraryAddUsageDescription</key><string>Save a copy of a recording or photo you choose to your library.</string>
+<key>UIBackgroundModes</key><array><string>audio</string><string>remote-notification</string><string>processing</string></array>
+<key>BGTaskSchedulerPermittedIdentifiers</key><array><string>com.talkgenoa.ios.sync</string></array>
+<key>CFBundleURLTypes</key><array><dict><key>CFBundleURLSchemes</key><array><string>genoa</string><string>gather</string></array></dict></array>
+<key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
+<key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
+</dict></plist>

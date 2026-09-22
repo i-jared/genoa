@@ -5,7 +5,7 @@
 
 **Version:** 1.1 · **Date:** September 16, 2026  
 **Status:** Implemented in the Android 0.2.0 beta. See [FEATURES.md](FEATURES.md) for verification evidence and remaining release checks; implementation does not imply every acceptance scenario has been certified.  
-**Platform:** Native Android, Kotlin and Jetpack Compose  
+**Platform:** Native Android, Kotlin and Jetpack Compose; native iOS uses SwiftUI and the same design assets and interaction rules
 **Website:** [talkgenoa.com](https://talkgenoa.com)
 
 ## 1. Purpose and source of truth

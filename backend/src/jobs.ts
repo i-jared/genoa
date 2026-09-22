@@ -1,6 +1,7 @@
 import type { Env, Job, Message } from "./types";
 import { transcribe } from "./transcription";
 import { Buffer } from "node:buffer";
+import { sendApplePush } from "./apple-push";
 let fcmToken: { token: string; expires: number } | undefined;
 const b64 = (value: string | Uint8Array) =>
   Buffer.from(value).toString("base64url");
@@ -52,13 +53,23 @@ async function push(
   messageId: string,
 ) {
   const credential = await googleToken(env);
-  if (!credential) return;
   const devices = await env.DB.prepare(
-    "SELECT token FROM devices WHERE user_id=?",
+    "SELECT token,platform FROM devices WHERE user_id=?",
   )
     .bind(uid)
-    .all<{ token: string }>();
+    .all<{ token: string; platform?: string }>();
   for (const device of devices.results) {
+    if (device.platform === "ios" || device.platform === "ios-sandbox") {
+      await sendApplePush(env, device, {
+        title,
+        body,
+        conversation_id: cid,
+        message_id: messageId,
+        event_id: eventId,
+      });
+      continue;
+    }
+    if (!credential) continue;
     const r = await fetch(
       `https://fcm.googleapis.com/v1/projects/${credential.project}/messages:send`,
       {
@@ -71,7 +82,11 @@ async function push(
           message: {
             token: device.token,
             notification: { title, body },
-            data: { conversation_id: cid, message_id: messageId, event_id: eventId },
+            data: {
+              conversation_id: cid,
+              message_id: messageId,
+              event_id: eventId,
+            },
             android: { collapse_key: eventId, notification: { tag: eventId } },
           },
         }),
@@ -87,6 +102,7 @@ async function push(
 export async function runJob(env: Env, job: Job) {
   const mid = String(job.payload.messageId ?? "");
   if (job.kind === "delete") {
+    await env.MEDIA.delete(`media/${mid}/live/init.mp4`);
     const assets = await env.DB.prepare(
       "SELECT object_key FROM assets WHERE message_id=?",
     )

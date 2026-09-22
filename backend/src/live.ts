@@ -55,6 +55,54 @@ live.post("/conversations/:id/live", async (c) => {
   );
   return c.json({ id: input.id });
 });
+// AVAssetWriter emits HLS fragmented MP4; Android continues to publish MPEG-TS.
+// Initialization data shares the message deletion lifecycle and authorization.
+live.put("/live/:id/init.mp4", async (c) => {
+  const mid = c.req.param("id"),
+    m = await messageAccess(c.env, mid, c.get("userId"));
+  if (m.author_id !== c.get("userId"))
+    fail(403, "Only the sender can publish segments");
+  if (m.state !== "live") fail(409, "This recording has ended");
+  const length = Number(c.req.header("content-length"));
+  if (!Number.isInteger(length) || length <= 0 || length > 1024 * 1024)
+    fail(413, "Initialization data too large");
+  const ts = await c.env.DB.prepare(
+    "SELECT 1 FROM live_segments WHERE message_id=? AND object_key LIKE '%.ts' LIMIT 1",
+  )
+    .bind(mid)
+    .first();
+  if (ts) fail(409, "Cannot change live format");
+  const key = `media/${mid}/live/init.mp4`;
+  if (!(await c.env.MEDIA.head(key))) {
+    const data = await c.req.arrayBuffer();
+    if (data.byteLength !== length) fail(400, "Unexpected initialization size");
+    await c.env.MEDIA.put(key, data, {
+      httpMetadata: { contentType: "video/mp4" },
+    });
+  }
+  const current = await c.env.DB.prepare(
+    "SELECT 1 FROM messages WHERE id=? AND state='live'",
+  )
+    .bind(mid)
+    .first();
+  if (!current) {
+    await c.env.MEDIA.delete(key);
+    fail(409, "This recording has ended");
+  }
+  return c.json({ ok: true });
+});
+live.get("/live/:id/init.mp4", async (c) => {
+  const mid = c.req.param("id");
+  await messageAccess(c.env, mid, c.get("userId"));
+  const object = await c.env.MEDIA.get(`media/${mid}/live/init.mp4`);
+  if (!object) fail(404, "Initialization data unavailable");
+  return new Response(object.body, {
+    headers: {
+      "Content-Type": "video/mp4",
+      "Cache-Control": "private, no-store",
+    },
+  });
+});
 live.put("/live/:id/segments/:number", async (c) => {
   const mid = c.req.param("id"),
     m = await messageAccess(c.env, mid, c.get("userId"));
@@ -80,9 +128,14 @@ live.put("/live/:id/segments/:number", async (c) => {
     .bind(mid, number)
     .first();
   if (prior) return c.json({ ok: true });
-  const key = `media/${mid}/live/${number}.ts`;
+  const fmp4 = c.req.query("format") === "fmp4";
+  if (c.req.query("format") && !fmp4) fail(400, "Invalid live format");
+  const init = await c.env.MEDIA.head(`media/${mid}/live/init.mp4`);
+  if (fmp4 !== !!init)
+    fail(409, "Live initialization does not match segment format");
+  const key = `media/${mid}/live/${number}.${fmp4 ? "m4s" : "ts"}`;
   await c.env.MEDIA.put(key, c.req.raw.body, {
-    httpMetadata: { contentType: "video/mp2t" },
+    httpMetadata: { contentType: fmp4 ? "video/mp4" : "video/mp2t" },
   });
   await c.env.DB.prepare(
     "INSERT OR IGNORE INTO live_segments SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM messages WHERE id=? AND state='live')",
@@ -118,15 +171,17 @@ live.get("/live/:id/playlist.m3u8", async (c) => {
     s.number === expected ? !!++expected : false,
   );
   const target = Math.max(2, ...contiguous.map((s) => Math.ceil(s.duration)));
+  const fmp4 = !!(await c.env.MEDIA.head(`media/${mid}/live/init.mp4`));
   const lines = [
     "#EXTM3U",
-    "#EXT-X-VERSION:3",
+    `#EXT-X-VERSION:${fmp4 ? 7 : 3}`,
     `#EXT-X-TARGETDURATION:${target}`,
     "#EXT-X-MEDIA-SEQUENCE:0",
     "#EXT-X-PLAYLIST-TYPE:EVENT",
+    ...(fmp4 ? ['#EXT-X-MAP:URI="init.mp4"'] : []),
     ...contiguous.flatMap((s) => [
       `#EXTINF:${s.duration.toFixed(3)},`,
-      `segments/${s.number}.ts`,
+      `segments/${s.number}.${fmp4 ? "m4s" : "ts"}`,
     ]),
   ];
   if (m.state !== "live") lines.push("#EXT-X-ENDLIST");
@@ -141,18 +196,19 @@ live.get("/live/:id/segments/:file", async (c) => {
   const mid = c.req.param("id");
   await messageAccess(c.env, mid, c.get("userId"));
   const file = c.req.param("file");
-  if (!/^\d+\.ts$/.test(file)) fail(400, "Invalid segment");
+  if (!/^\d+\.(ts|m4s)$/.test(file)) fail(400, "Invalid segment");
   const asset = await c.env.DB.prepare(
     "SELECT object_key FROM live_segments WHERE message_id=? AND number=?",
   )
-    .bind(mid, Number(file.slice(0, -3)))
+    .bind(mid, Number(file.split(".")[0]))
     .first<{ object_key: string }>();
-  if (!asset) fail(404, "Segment unavailable");
+  if (!asset || !asset.object_key.endsWith(`/${file}`))
+    fail(404, "Segment unavailable");
   const obj = await c.env.MEDIA.get(asset.object_key);
   if (!obj) fail(404, "Segment unavailable");
   return new Response(obj.body, {
     headers: {
-      "Content-Type": "video/mp2t",
+      "Content-Type": file.endsWith(".m4s") ? "video/mp4" : "video/mp2t",
       "Cache-Control": "private, no-store",
     },
   });

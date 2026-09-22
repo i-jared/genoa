@@ -4,7 +4,7 @@ Private video messaging · Website: [talkgenoa.com](https://talkgenoa.com)
 
 Architecture and delivery plan · September 16, 2026
 
-> Original planning record. The later request for native Android supersedes the Expo recommendation below. The implemented architecture is Kotlin/Compose with native media, Workers/D1/R2, Firebase push, and native AAC extraction. See [the current architecture](docs/ARCHITECTURE.md) and [verified feature status](docs/FEATURES.md).
+> Original planning record. The later requests for native Android and native iOS supersede the Expo recommendation below. The implemented architecture is Kotlin/Compose and SwiftUI/AVFoundation clients with Workers/D1/R2, Android FCM and iOS APNs support, and native media. See [the current architecture](docs/ARCHITECTURE.md) and [verified feature status](docs/FEATURES.md).
 
 Build a private video messenger for individuals and small groups. Use React Native with Expo for iPhone and Android, a TypeScript/Hono API on Cloudflare Workers, D1 for application data, and private R2 buckets for media. Keep one backend codebase, with separate API and background-job entry points. Add Durable Objects for live events and Cloudflare Containers only where actual video processing is required.
 

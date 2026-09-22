@@ -10,3 +10,8 @@ android/local.properties
 *.keystore
 artifacts/
 .DS_Store
+ios/build/
+ios/DerivedData/
+**/xcuserdata/
+*.xcuserstate
+*.p8

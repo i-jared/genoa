@@ -11,6 +11,7 @@ export interface Env {
   BETA_INVITE_CODE: string;
   AI?: Ai;
   FCM_SERVICE_ACCOUNT?: string;
+  APNS_CREDENTIALS?: string;
   SUMMARY_MODEL?: string;
 }
 export interface Job {

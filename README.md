@@ -2,7 +2,7 @@
 
 Website: [talkgenoa.com](https://talkgenoa.com). This rename does not configure website hosting or DNS; the app continues to use the deployed API.
 
-Native Android video messaging with a Cloudflare backend. The product plan is in [PLAN.md](PLAN.md); binding engineering and UI guidance is in [AGENTS.md](AGENTS.md). Implementation decisions and honest verification status live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/FEATURES.md](docs/FEATURES.md).
+Native Android and iOS video messaging with a shared Cloudflare backend. The product plan is in [PLAN.md](PLAN.md); binding engineering and UI guidance is in [AGENTS.md](AGENTS.md). Implementation decisions and honest verification status live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/FEATURES.md](docs/FEATURES.md).
 
 The visual and interaction design, inspired by the supplied Genoa reference, is in [docs/DESIGN.md](docs/DESIGN.md). Android 0.2.0 applies its palette, typography, custom icons, navigation, contextual controls, and private recording/review flow. See [verification status](docs/FEATURES.md) for tested behavior and remaining device checks.
 
@@ -11,6 +11,10 @@ Explore the [visual design guideline webpage](https://genoa-design-guide.i-jared
 ## Try the beta
 
 Install `artifacts/genoa-android-debug.apk` on Android 10 or newer. It defaults to the deployed HTTPS backend. Use the private invitation code in `artifacts/BETA-ACCESS.txt` to create your account; then create a conversation and share its group invitation link. The APK uses a development signing key.
+
+## Native iOS
+
+Open [ios/Genoa.xcodeproj](ios/Genoa.xcodeproj) in Xcode 26 or later. The SwiftUI/AVFoundation app targets iOS 17+, uses the Genoa design system and existing accounts, and includes native recording, live HLS, durable uploads, playback, and contextual conversation/account controls. See [iOS build, test, and Apple configuration instructions](ios/README.md). The iOS-compatible Worker changes must be deployed for live sharing; signing, APNs configuration, and physical-device parity verification remain release steps.
 
 ## Run locally
 
