@@ -1,0 +1,2 @@
+CREATE TABLE audio_chunks (message_id TEXT NOT NULL REFERENCES messages(id), number INTEGER NOT NULL, object_key TEXT NOT NULL, offset_ms INTEGER NOT NULL, transcript TEXT, PRIMARY KEY(message_id,number));
+CREATE TABLE captions (message_id TEXT NOT NULL REFERENCES messages(id), number INTEGER NOT NULL, start_ms INTEGER NOT NULL, end_ms INTEGER NOT NULL, text TEXT NOT NULL, PRIMARY KEY(message_id,number));

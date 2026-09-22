@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.Genoa" parent="Theme.Genoa.Base">
+        <item name="android:windowSplashScreenBackground">@color/genoa_launch_canvas</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/genoa_launcher_background</item>
+    </style>
+</resources>

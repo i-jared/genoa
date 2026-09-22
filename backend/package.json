@@ -1,0 +1,26 @@
+{
+  "name": "genoa-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "check": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "migrate:local": "wrangler d1 migrations apply genoa --local",
+    "deploy": "wrangler deploy --config wrangler.production.jsonc",
+    "migrate:production": "wrangler d1 migrations apply genoa --remote --config wrangler.production.jsonc"
+  },
+  "dependencies": {
+    "better-auth": "1.7.5",
+    "hono": "4.13.8",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260916.1",
+    "@types/node": "^24.0.0",
+    "prettier": "^3.9.7",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "wrangler": "4.132.0"
+  }
+}

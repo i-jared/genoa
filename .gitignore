@@ -1,0 +1,12 @@
+node_modules/
+.wrangler/
+.dev.vars
+.env*
+!.env.example
+android/.gradle/
+android/**/build/
+android/local.properties
+*.jks
+*.keystore
+artifacts/
+.DS_Store

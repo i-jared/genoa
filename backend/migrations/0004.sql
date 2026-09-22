@@ -1,0 +1,1 @@
+ALTER TABLE messages ADD COLUMN live_rotation INTEGER NOT NULL DEFAULT 0;

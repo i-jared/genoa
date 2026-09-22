@@ -1,0 +1,931 @@
+{
+  "brand": "Genoa",
+  "version": "1.0.0",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 7013,
+      "sha256": "158b1bc88f8ed86ba7f700556d454c093ecf0adfda576d46eb5967769b8ca0fb"
+    },
+    {
+      "path": "VALIDATION.md",
+      "bytes": 1380,
+      "sha256": "4e12fc64197dd21ad44b8d50e066535a81acd4235f7437fa79ce3656c0b5a6ae"
+    },
+    {
+      "path": "android/res/drawable/genoa_brand_mark.xml",
+      "bytes": 702,
+      "sha256": "04dbbd9f4e00d72bf8b97672f764d4a1ec48c2235765678aaf2beb40bd6eca93"
+    },
+    {
+      "path": "android/res/drawable/genoa_launcher_foreground.xml",
+      "bytes": 722,
+      "sha256": "02b69d8feb920db522518c2c05520a122bf5bdae8f4b82c67e481fa9de1f3ea8"
+    },
+    {
+      "path": "android/res/drawable/genoa_launcher_monochrome.xml",
+      "bytes": 722,
+      "sha256": "8b4456c0a81f3db5ba155062829a2b55ce923f22afe78f2f0957550896bda3c7"
+    },
+    {
+      "path": "android/res/drawable/genoa_notification.xml",
+      "bytes": 714,
+      "sha256": "fc4417c756ef2459c013f2b03d2a46b5498ceb0c8398f2f633c7fa2527f5cff2"
+    },
+    {
+      "path": "android/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "bytes": 308,
+      "sha256": "d14b970bd171a457b6b955efcd0fcc2c3d018ac5b82ef67fd765e1e9f80f01c3"
+    },
+    {
+      "path": "android/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+      "bytes": 308,
+      "sha256": "d14b970bd171a457b6b955efcd0fcc2c3d018ac5b82ef67fd765e1e9f80f01c3"
+    },
+    {
+      "path": "android/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 2383,
+      "sha256": "88f875534430098980e41571ea8b7eac4880e0c5071adae96cfb102a0ff0f141",
+      "width": 72,
+      "height": 72,
+      "mode": "RGBA"
+    },
+    {
+      "path": "android/res/mipmap-hdpi/ic_launcher_round.png",
+      "bytes": 3132,
+      "sha256": "955fbab88f8dc190ae913a42989858aa99ed3a9c3ac9cba1d5098f251005e364",
+      "width": 72,
+      "height": 72,
+      "mode": "RGBA"
+    },
+    {
+      "path": "android/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 1591,
+      "sha256": "08f9def4f6d67e3a712eb73934ac321f3e01a44b008e03c9fe2d788346f28b0e",
+      "width": 48,
+      "height": 48,
+      "mode": "RGBA"
+    },
+    {
+      "path": "android/res/mipmap-mdpi/ic_launcher_round.png",
+      "bytes": 2053,
+      "sha256": "a2601d7aa52fcaa54f9af0054b65b761cee07ac0c2b6588f4148c210c307cdaf",
+      "width": 48,
+      "height": 48,
+      "mode": "RGBA"
+    },
+    {
+      "path": "android/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 3213,
+      "sha256": "a5ecdb7e10637468e500dca1da8b15d547fa6264a0f10b33be536d0b5ec8e380",
+      "width": 96,
+      "height": 96,
+      "mode": "RGBA"
+    },
+    {
+      "path": "android/res/mipmap-xhdpi/ic_launcher_round.png",
+      "bytes": 4208,
+      "sha256": "f08fc044b60bccbf8614a975f1b0733e43bac54046b1db4f6ec049bda3ea9871",
+      "width": 96,
+      "height": 96,
+      "mode": "RGBA"
+    },
+    {
+      "path": "android/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 4726,
+      "sha256": "f654bbee213c8f759037aeb2020da162a59e786b64e0e1cc38520f06cbdedfe2",
+      "width": 144,
+      "height": 144,
+      "mode": "RGBA"
+    },
+    {
+      "path": "android/res/mipmap-xxhdpi/ic_launcher_round.png",
+      "bytes": 6336,
+      "sha256": "57ee50aca2ca42143f95363e64eb6c46b9c7e4a22c2de5c5cb60da9a510fbe55",
+      "width": 144,
+      "height": 144,
+      "mode": "RGBA"
+    },
+    {
+      "path": "android/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 6269,
+      "sha256": "62312336c0be31e25dced9572f04d8a85c3467b44911fae1b4a40fa8f7f27ec0",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA"
+    },
+    {
+      "path": "android/res/mipmap-xxxhdpi/ic_launcher_round.png",
+      "bytes": 8527,
+      "sha256": "d931e53261aec323629246c5867a6638f1cba3d786971379df2235c613de076c",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA"
+    },
+    {
+      "path": "android/res/values/genoa_brand_colors.xml",
+      "bytes": 85,
+      "sha256": "5a74ffecc7092c7b80f1c0bb7d62b58a7f6bcef5e24084ba74dc91ed921bf121"
+    },
+    {
+      "path": "licenses/Newsreader-OFL.txt",
+      "bytes": 4394,
+      "sha256": "fdfad38143ec470553cae82a1e45320bdd1b9ec70415d37bd0171051d8a4ded8"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-black@1x.png",
+      "bytes": 10272,
+      "sha256": "9ee142bde1c8ee85d9938eb4e772d1527a802b2034b234930481004d6d665586",
+      "width": 640,
+      "height": 160,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-black@2x.png",
+      "bytes": 22438,
+      "sha256": "5d8a9c9ab9f35c0058f9c6b70bf3f72c79b7879220f62292336c411027e9d4ae",
+      "width": 1280,
+      "height": 320,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-black@4x.png",
+      "bytes": 50565,
+      "sha256": "439a845a90e51f775c013d8d0431979961cc778bced2e493cd36c3974d0bb3fa",
+      "width": 2560,
+      "height": 640,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-ink@1x.png",
+      "bytes": 16407,
+      "sha256": "c7b1c369cb14e2cdcb5f47e22be1af26bab19ff4c57887b946b59a466c77a544",
+      "width": 640,
+      "height": 160,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-ink@2x.png",
+      "bytes": 34290,
+      "sha256": "f4506ef7f5c9fc89c100112a8889a43b1df24e5a63ab0e9ba43ae1b0c7cec4dc",
+      "width": 1280,
+      "height": 320,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-ink@4x.png",
+      "bytes": 73788,
+      "sha256": "1a495fad8470822699a570ce30934b814e11d3324319e8698973718f60481dcc",
+      "width": 2560,
+      "height": 640,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-ivory@1x.png",
+      "bytes": 16180,
+      "sha256": "7faff80d581cb72ed28a8e81991aeb9146963734abcddba2449424b36b5f41fc",
+      "width": 640,
+      "height": 160,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-ivory@2x.png",
+      "bytes": 33953,
+      "sha256": "2258af6a43a7547b8bb1a141c9f4e7b49b6d2d9ee40b1c34581611b86ed18792",
+      "width": 1280,
+      "height": 320,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-ivory@4x.png",
+      "bytes": 72769,
+      "sha256": "2b79da96023dee5770ed1f2ee34a5a3600f6203b3de1a51f6854dd6153e8df91",
+      "width": 2560,
+      "height": 640,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-teal@1x.png",
+      "bytes": 16819,
+      "sha256": "717ac881b2afb85e3b992efe2c32e758f15812bf23618db8ec1611c495d4ae99",
+      "width": 640,
+      "height": 160,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-teal@2x.png",
+      "bytes": 35030,
+      "sha256": "b9fbc8aca4cdc2be0a7432e6d8224a0aabe73139d8e7542201d1fc8900873612",
+      "width": 1280,
+      "height": 320,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-teal@4x.png",
+      "bytes": 75300,
+      "sha256": "85590f60b2138afd47ea3050664fbd793af25c6e9ba332085f3fd0b9d301213e",
+      "width": 2560,
+      "height": 640,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-white@1x.png",
+      "bytes": 11796,
+      "sha256": "d0ab0a79ce1485ffdb7e65488bd237cf2e4d08dd029b6a1d436d467da19f5bbc",
+      "width": 640,
+      "height": 160,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-white@2x.png",
+      "bytes": 26718,
+      "sha256": "8f79a4f6ee8aec4903700795e5deb0921f8e817c34b2dd2e9bad9a1e1e998a0b",
+      "width": 1280,
+      "height": 320,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-horizontal-white@4x.png",
+      "bytes": 57622,
+      "sha256": "085069fbbd058bd243c3c0cc28860bbecee28babe10d4062633aca52439b2d7e",
+      "width": 2560,
+      "height": 640,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-black@1x.png",
+      "bytes": 7960,
+      "sha256": "0888d54a8da991f7faf9346c0856da853f80679e4a7839dc4f377eefeb08a156",
+      "width": 400,
+      "height": 320,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-black@2x.png",
+      "bytes": 17931,
+      "sha256": "73113e1ff030ecfdfe07be22cc804e1b6a87ba4850c22cb33d63f12b61798dda",
+      "width": 800,
+      "height": 640,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-black@4x.png",
+      "bytes": 41400,
+      "sha256": "a71fb491928f2acc25059ba4f8c1aa45bc5dab92a2a522b91726d67a6c126a04",
+      "width": 1600,
+      "height": 1280,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-ink@1x.png",
+      "bytes": 12438,
+      "sha256": "9c704b5c0fa1fa158a012d12cf43f16876a37d6e7d8aa88fbded39c799dcb172",
+      "width": 400,
+      "height": 320,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-ink@2x.png",
+      "bytes": 26753,
+      "sha256": "f9bf5295686721fe9a1fb8246b8d7aaeabc4c89555c619e5b822ea716168ec4d",
+      "width": 800,
+      "height": 640,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-ink@4x.png",
+      "bytes": 58368,
+      "sha256": "287ef596de112c42693922ac2170b351a6cbede30830821e4f747645f1f85d5c",
+      "width": 1600,
+      "height": 1280,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-ivory@1x.png",
+      "bytes": 12304,
+      "sha256": "1061cf2c34d2ee7e18a9bc11f14d15117ffa3c39436b1f564b6010af69f04f02",
+      "width": 400,
+      "height": 320,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-ivory@2x.png",
+      "bytes": 26333,
+      "sha256": "c11966ec7bb68d20cd3db9b252fd1f777679e915229dfb1b492bb5894c34672c",
+      "width": 800,
+      "height": 640,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-ivory@4x.png",
+      "bytes": 57582,
+      "sha256": "0c3822c7dcaaa6d3d9e276303d2b3220453f1538e1bc3a985aca3c16aafc63b9",
+      "width": 1600,
+      "height": 1280,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-teal@1x.png",
+      "bytes": 12716,
+      "sha256": "917c7670287ea06a589f80b7991a94466b37296d3789689c4c94660bb6b78a9f",
+      "width": 400,
+      "height": 320,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-teal@2x.png",
+      "bytes": 27094,
+      "sha256": "e1451905d6fe967f831a7e3c938f062ebb13d77de5ea0458c37895b196ce4d00",
+      "width": 800,
+      "height": 640,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-teal@4x.png",
+      "bytes": 59435,
+      "sha256": "7b21ec54e9a6c6f8568c9ab634460374501691eb1be7da82736b20bd590aa997",
+      "width": 1600,
+      "height": 1280,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-white@1x.png",
+      "bytes": 9128,
+      "sha256": "ef49fa6af76f334c966632741487d62035044c8511670c8ce839d011bdf46c26",
+      "width": 400,
+      "height": 320,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-white@2x.png",
+      "bytes": 20432,
+      "sha256": "e9c8031db1d1d73ef7e5e8461408f5bfdb60a9c88ca0cefb286d2f6fecbf6edd",
+      "width": 800,
+      "height": 640,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-logo-stacked-white@4x.png",
+      "bytes": 47252,
+      "sha256": "32e051a7bf3796ad9bfa70472c635452eab03ca39c4eac959531d93e0c1a8039",
+      "width": 1600,
+      "height": 1280,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-black@1x.png",
+      "bytes": 2325,
+      "sha256": "6a23bade8174cbf99c79b7bca51a9008e3628cbce27bec2aa17800ccedd17e65",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-black@2x.png",
+      "bytes": 5058,
+      "sha256": "e38af490bce5e6430eefa0c9f81bd981763c4de1ef16573bcbee79269b7ec39c",
+      "width": 256,
+      "height": 256,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-black@4x.png",
+      "bytes": 11320,
+      "sha256": "4448c31100bb0d48ebde8ad9a062efb2e3cd2798119e88ee408451b4019bd23c",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-ink@1x.png",
+      "bytes": 3799,
+      "sha256": "554d30a0198d7d0238b8adad1e42cbc2d5481853a4b6ea7a55b72ffc0f1ba04b",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-ink@2x.png",
+      "bytes": 7654,
+      "sha256": "58bd0191e87ff59a6a24993d55471a15d75bafc0a64bddf8c0b64b0886059c56",
+      "width": 256,
+      "height": 256,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-ink@4x.png",
+      "bytes": 15956,
+      "sha256": "bde15e54c0e70e9045b23de633d8c5ba178ee5c41d67c090e180ce648e79623e",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-ivory@1x.png",
+      "bytes": 3683,
+      "sha256": "ffde408c2e0b7ef430ad4830018e77b27a610a4a6dd206a35d3b546cb4bb1ed4",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-ivory@2x.png",
+      "bytes": 7517,
+      "sha256": "33d254fd0432e34b80d1cd4251f2966cf609a57995102944228e22dc9493435e",
+      "width": 256,
+      "height": 256,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-ivory@4x.png",
+      "bytes": 15628,
+      "sha256": "50305d877c356b000ee63ac926e8cec465c7aa31ab38212d8a2d80b708bf7863",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-teal@1x.png",
+      "bytes": 3859,
+      "sha256": "6ac6592ecdde8ffa3b51b65fdeb16b93eb1909382e36a1fd26a1d49ef11fbd74",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-teal@2x.png",
+      "bytes": 7803,
+      "sha256": "1016a013098427ca74a4faa017c2a0164f3ce952308493dc7aeb28e3503df5fd",
+      "width": 256,
+      "height": 256,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-teal@4x.png",
+      "bytes": 16174,
+      "sha256": "f52317794e7a1cb4b5d2ac7d168737f7d042f0e8295029845dff9399fb51d531",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-white@1x.png",
+      "bytes": 2830,
+      "sha256": "ad58cc236e90170036535fb17fb4b14431d816277e68cc65f45cb677a470de65",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-white@2x.png",
+      "bytes": 6026,
+      "sha256": "6009e6f7f11ef21e56c8820ce3748d6f958d7ce18dc9f86cccd1dd39fbf35b03",
+      "width": 256,
+      "height": 256,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-mark-white@4x.png",
+      "bytes": 12730,
+      "sha256": "3ece4ec8283693c4b8b0c4437db50ce8fa5641790b33cd18679a79ce8ff9b006",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-black@1x.png",
+      "bytes": 7479,
+      "sha256": "adf8b2b55409341b944f2eb715ae3474d6ab29d7986c63e39fc094441f57415a",
+      "width": 480,
+      "height": 144,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-black@2x.png",
+      "bytes": 16367,
+      "sha256": "3220472f48caa9a9fb9c4ef6e1e8830c83e0fed2230231f87c4cda7e360c674b",
+      "width": 960,
+      "height": 288,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-black@4x.png",
+      "bytes": 36876,
+      "sha256": "ec1b78fdcda57e3c720c36c37c95667bceeac013b9d5800e2538b34d212fce08",
+      "width": 1920,
+      "height": 576,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-ink@1x.png",
+      "bytes": 11910,
+      "sha256": "c2782037de25d8892d3f7bad7106392839a2f26683d76d40df459a284ba32e68",
+      "width": 480,
+      "height": 144,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-ink@2x.png",
+      "bytes": 25055,
+      "sha256": "05c6d1d44ddda0f0d288b570a45044915356dfdcb86b9f0ceb98ea1c3e764227",
+      "width": 960,
+      "height": 288,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-ink@4x.png",
+      "bytes": 54149,
+      "sha256": "ae7517fb08cefc2555a11ca8e88a4b18fd80287fd54a16b4413622c74d3efca7",
+      "width": 1920,
+      "height": 576,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-ivory@1x.png",
+      "bytes": 11862,
+      "sha256": "0beb29cfb75c7966c0762092b7449bdaec6a6238c49aa31f65d31f8e91cd6723",
+      "width": 480,
+      "height": 144,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-ivory@2x.png",
+      "bytes": 24775,
+      "sha256": "03a2da3985ccc52e84066ed3e96bd7261703b9499df274d68ca21bb702b519c8",
+      "width": 960,
+      "height": 288,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-ivory@4x.png",
+      "bytes": 53739,
+      "sha256": "d1dfaf74112683c15a4d4c3fbb76d41b15fdfdf383653295089b29851302452c",
+      "width": 1920,
+      "height": 576,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-teal@1x.png",
+      "bytes": 12297,
+      "sha256": "7f8a542b86158c0a6c66cd7be86189d796ff961ae94dca0c445e821e22e55657",
+      "width": 480,
+      "height": 144,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-teal@2x.png",
+      "bytes": 25661,
+      "sha256": "3a25a67db7930bca503d88a3ec51ec5cdf7247df8d91b13a3992f52e99e478de",
+      "width": 960,
+      "height": 288,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-teal@4x.png",
+      "bytes": 55176,
+      "sha256": "5056aa46841b1e436999f27cd445ad852a76ade7e9a1615ef848ef724b96250e",
+      "width": 1920,
+      "height": 576,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-white@1x.png",
+      "bytes": 8285,
+      "sha256": "36ee7cb1967c5aa45b6283eceeae5c7a3237ec8515ad10677c37b1bdb9ae0c64",
+      "width": 480,
+      "height": 144,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-white@2x.png",
+      "bytes": 19361,
+      "sha256": "7c9fc900515ccc05e0b20e771c2fc780e641d6d23670d2b3ff46bc4b3d78aab1",
+      "width": 960,
+      "height": 288,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/genoa-wordmark-white@4x.png",
+      "bytes": 42752,
+      "sha256": "a636c954ca992f4bdd7b9f2ca029bda98c585e537571254fd52a2da39e3edb21",
+      "width": 1920,
+      "height": 576,
+      "mode": "RGBA"
+    },
+    {
+      "path": "preview/android-masks.png",
+      "bytes": 22358,
+      "sha256": "1184387f6b7e26fe85c1a08ed785f353e6ecf09031e593293097e9527f24afa2",
+      "width": 1000,
+      "height": 360,
+      "mode": "RGB"
+    },
+    {
+      "path": "preview/android-masks.svg",
+      "bytes": 2998,
+      "sha256": "35cb407068b3f6a2bbcdc56992eabb35ad0d98e3166e9f2c46e9e97036dd1bc6"
+    },
+    {
+      "path": "preview/brand-board.png",
+      "bytes": 99257,
+      "sha256": "5b4fdc67e0e7333f144d25a1d255f2ab6b81724db0143890eb9a52c86f54a211",
+      "width": 1600,
+      "height": 1080,
+      "mode": "RGB"
+    },
+    {
+      "path": "preview/brand-board.svg",
+      "bytes": 40708,
+      "sha256": "512f6655f79edf6cba328243b37e1cb6868c03fcbaef4522a7e254dda29f2e32"
+    },
+    {
+      "path": "social/avatar-1024.png",
+      "bytes": 24938,
+      "sha256": "c91177308ac5b2f63728625d2748ff4f5a3df42d1c62fb224269264315e0e739",
+      "width": 1024,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "social/open-graph-1200x630.png",
+      "bytes": 29481,
+      "sha256": "4c62957b3b12b90ca4c9470ab005a3f30c9461a51920361f8cac3fb1725ceb14",
+      "width": 1200,
+      "height": 630,
+      "mode": "RGB"
+    },
+    {
+      "path": "social/open-graph.svg",
+      "bytes": 12138,
+      "sha256": "7148feacd43562543b445fcbb029c74052dfc0e091368e4521fc69a40f58cb04"
+    },
+    {
+      "path": "source/Newsreader.ttf",
+      "bytes": 451664,
+      "sha256": "8a08d13f8a6c0d51be379a60af84f945f65369a67e509ee3c3bdcc421254d7c1"
+    },
+    {
+      "path": "source/brand.json",
+      "bytes": 805,
+      "sha256": "c5ed781921d9b74a0f1d925c9564d2094b0b5d74c4ce74e2b9f5f1bf691fc579"
+    },
+    {
+      "path": "source/build.py",
+      "bytes": 12355,
+      "sha256": "cf82fab986595ddd14c480e8164f1e923e5f195cd5eb6b3b61c445b09a94fe76"
+    },
+    {
+      "path": "source/concept-prompt.txt",
+      "bytes": 1312,
+      "sha256": "af3b29d109168fcd83b779a1b2454fa988ad44552b942da22cfb72773339a29e"
+    },
+    {
+      "path": "source/concept.png",
+      "bytes": 963659,
+      "sha256": "bfcf5d78c2cf8355d47360ff64ba9f798d1bfc513b4a12d7e37c695e976d56a5",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA"
+    },
+    {
+      "path": "source/mark.svg",
+      "bytes": 568,
+      "sha256": "abe89e3bd935264b9179062f15e965f8629b192cc35148d1e550b3c7ec6ba41e"
+    },
+    {
+      "path": "source/requirements.txt",
+      "bytes": 33,
+      "sha256": "0905443d5822ab67fc8608097368876bf5d5b5cef449c08cd31236fc5d18ae7d"
+    },
+    {
+      "path": "source/verify.py",
+      "bytes": 4861,
+      "sha256": "b312d0c3d8fdb041f840b2a308e2cf7acd6c4acfa10e10b861496951b390916c"
+    },
+    {
+      "path": "source/wordmark-outlined.svg",
+      "bytes": 11580,
+      "sha256": "e742c44cf600df7057724af9d823cb756bd526b1da50fa23e259a01a0a2dc33e"
+    },
+    {
+      "path": "store/app-icon-1024.png",
+      "bytes": 24938,
+      "sha256": "c91177308ac5b2f63728625d2748ff4f5a3df42d1c62fb224269264315e0e739",
+      "width": 1024,
+      "height": 1024,
+      "mode": "RGB"
+    },
+    {
+      "path": "store/google-play-feature-1024x500.png",
+      "bytes": 24591,
+      "sha256": "54688c2b0d5afed65a8743d6b50508fe179e5e1187392892892cc3be5a6357cd",
+      "width": 1024,
+      "height": 500,
+      "mode": "RGB"
+    },
+    {
+      "path": "store/google-play-feature.svg",
+      "bytes": 12082,
+      "sha256": "d04d7e9c12c8ceb6468272ffdfd1238f63a8c237238815743cdb9815d2522c19"
+    },
+    {
+      "path": "store/google-play-icon-512.png",
+      "bytes": 11891,
+      "sha256": "a1e9d5a37ae4b26fb4a992a15265177319ce598e06f98222fa85588acf6be46e",
+      "width": 512,
+      "height": 512,
+      "mode": "RGB"
+    },
+    {
+      "path": "svg/genoa-app-icon.svg",
+      "bytes": 645,
+      "sha256": "7f183d348e2fc9d51b8ec05ac8703b207fcdad4e2fed9a0896fc20f146ec2c12"
+    },
+    {
+      "path": "svg/genoa-logo-horizontal-black.svg",
+      "bytes": 12067,
+      "sha256": "aaa386ef48b949e77f8eb5cd30fbe849e944a19a3f5c1aeed9213f8e70a0d50e"
+    },
+    {
+      "path": "svg/genoa-logo-horizontal-ink.svg",
+      "bytes": 12067,
+      "sha256": "b90fd3a8cd9b6fda074606d47b563f9f48af60b89b2a7b13021fcc355752391b"
+    },
+    {
+      "path": "svg/genoa-logo-horizontal-ivory.svg",
+      "bytes": 12067,
+      "sha256": "e3d6d38b13ebb64fee9be54b5ceb5c3bc5e5a9b91208ebd69448525eb48c6ef1"
+    },
+    {
+      "path": "svg/genoa-logo-horizontal-teal.svg",
+      "bytes": 12067,
+      "sha256": "b831788fd4b8485f27e99877d22f3afccdf38344b66b41550562df0c0bb186f5"
+    },
+    {
+      "path": "svg/genoa-logo-horizontal-white.svg",
+      "bytes": 12067,
+      "sha256": "9dac1648d134c27da4e2b5a17bb2af1c120a24cd06df85f849e75d2bc8fd5a63"
+    },
+    {
+      "path": "svg/genoa-logo-stacked-black.svg",
+      "bytes": 12026,
+      "sha256": "02e8c96112c9628b53082284829dac6b81a1be843a35a202837eef9874366cf8"
+    },
+    {
+      "path": "svg/genoa-logo-stacked-ink.svg",
+      "bytes": 12026,
+      "sha256": "ba9670e9ac5af6abf2a440f126acf44ffce1742e4cdf8cd2b1a79a4337572618"
+    },
+    {
+      "path": "svg/genoa-logo-stacked-ivory.svg",
+      "bytes": 12026,
+      "sha256": "c50767c530e760f6348deb2271855f8ad8f9c9c5bdd1ce4e353b24a4fec3c8da"
+    },
+    {
+      "path": "svg/genoa-logo-stacked-teal.svg",
+      "bytes": 12026,
+      "sha256": "14c3d1a445270cc0e11861f50f95b318efaa3b0c2027e1035e4fbd0e41af5aef"
+    },
+    {
+      "path": "svg/genoa-logo-stacked-white.svg",
+      "bytes": 12026,
+      "sha256": "3a8510d48012a138f3aa412b28542c7b8ad5b6ac7f3366a7a693a7cd0abf7830"
+    },
+    {
+      "path": "svg/genoa-mark-black.svg",
+      "bytes": 568,
+      "sha256": "65a66b88de2bf0bea4be6aded9af0b9ca105d9e3b285b39cfd5387456a4ee443"
+    },
+    {
+      "path": "svg/genoa-mark-ink.svg",
+      "bytes": 568,
+      "sha256": "e4c1c65698e09cf4acf61b73c2161a5c4ffa5fae68c8547c395928ec0b84153d"
+    },
+    {
+      "path": "svg/genoa-mark-ivory.svg",
+      "bytes": 568,
+      "sha256": "380013690f4b6b51def6071e774d805f637de339f3b4fef70aa10d2985f908ca"
+    },
+    {
+      "path": "svg/genoa-mark-teal.svg",
+      "bytes": 568,
+      "sha256": "abe89e3bd935264b9179062f15e965f8629b192cc35148d1e550b3c7ec6ba41e"
+    },
+    {
+      "path": "svg/genoa-mark-white.svg",
+      "bytes": 568,
+      "sha256": "e1f47129910f00c13de1b8b36baf431dd4e297101c2c05f21a7db2bb85263a39"
+    },
+    {
+      "path": "svg/genoa-wordmark-black.svg",
+      "bytes": 11580,
+      "sha256": "7e76fd5de1774f1bfa029d47b22ca29d345b119a35c240e9d9cde0487659dc9a"
+    },
+    {
+      "path": "svg/genoa-wordmark-ink.svg",
+      "bytes": 11580,
+      "sha256": "cda33bc12e37f2bcd2a9a4be96324ddeec39eb7d25be41059ef72dd912f7d5d3"
+    },
+    {
+      "path": "svg/genoa-wordmark-ivory.svg",
+      "bytes": 11580,
+      "sha256": "7686838ea8016265dfe6b3052f83a44e1599dbcaac52583f4abf7139334aa313"
+    },
+    {
+      "path": "svg/genoa-wordmark-teal.svg",
+      "bytes": 11580,
+      "sha256": "e742c44cf600df7057724af9d823cb756bd526b1da50fa23e259a01a0a2dc33e"
+    },
+    {
+      "path": "svg/genoa-wordmark-white.svg",
+      "bytes": 11580,
+      "sha256": "21522c74045bee53304cc0037c6844e39e9c8ade6824e81a2f6b054d8dfb84b5"
+    },
+    {
+      "path": "web/favicon.ico",
+      "bytes": 3003,
+      "sha256": "a525201290b6501db6a800abf57e85012ed9a8aaf759fa4609317e09b70cefa4"
+    },
+    {
+      "path": "web/favicon.svg",
+      "bytes": 645,
+      "sha256": "7f183d348e2fc9d51b8ec05ac8703b207fcdad4e2fed9a0896fc20f146ec2c12"
+    },
+    {
+      "path": "web/head-snippet.html",
+      "bytes": 423,
+      "sha256": "7863bbc95003e21ff2f9c082e967c3c8b212ab0006a21ad8f2dc3ca0d7d3efe9"
+    },
+    {
+      "path": "web/icon-16.png",
+      "bytes": 408,
+      "sha256": "b94628c462db0120cd60b44c778d05edf386f4f600b2a75c86c7fdd34cb9fb2a",
+      "width": 16,
+      "height": 16,
+      "mode": "RGB"
+    },
+    {
+      "path": "web/icon-180.png",
+      "bytes": 4035,
+      "sha256": "7f6b9d17570de2f46200bd356e2c02209fe168f0c680a7331abd63bb1bbb0cef",
+      "width": 180,
+      "height": 180,
+      "mode": "RGB"
+    },
+    {
+      "path": "web/icon-192.png",
+      "bytes": 4302,
+      "sha256": "ef40b6f1ceecf538a14516cf59c0804334bb6f8aad656df3f5324070c82dd792",
+      "width": 192,
+      "height": 192,
+      "mode": "RGB"
+    },
+    {
+      "path": "web/icon-32.png",
+      "bytes": 819,
+      "sha256": "356d5802d449568870abf607f4c84c0dbb46f38957e3d8333ad680583aa60476",
+      "width": 32,
+      "height": 32,
+      "mode": "RGB"
+    },
+    {
+      "path": "web/icon-48.png",
+      "bytes": 1123,
+      "sha256": "75488ba5504a850860c223cff81c1507023325b389b08990990825eeec4841f1",
+      "width": 48,
+      "height": 48,
+      "mode": "RGB"
+    },
+    {
+      "path": "web/icon-512.png",
+      "bytes": 11891,
+      "sha256": "a1e9d5a37ae4b26fb4a992a15265177319ce598e06f98222fa85588acf6be46e",
+      "width": 512,
+      "height": 512,
+      "mode": "RGB"
+    },
+    {
+      "path": "web/maskable-icon-512.png",
+      "bytes": 11146,
+      "sha256": "162042d23c4193f9eb260c5188b7b9d9ab76984c1c8657e814c6ec1d3b52fd27",
+      "width": 512,
+      "height": 512,
+      "mode": "RGB"
+    },
+    {
+      "path": "web/maskable-icon.svg",
+      "bytes": 640,
+      "sha256": "458aaa55e5309ad615d054c5917e47f03bef76cf0118c92ea987d27a056025ee"
+    },
+    {
+      "path": "web/safari-pinned-tab.svg",
+      "bytes": 568,
+      "sha256": "65a66b88de2bf0bea4be6aded9af0b9ca105d9e3b285b39cfd5387456a4ee443"
+    },
+    {
+      "path": "web/site.webmanifest",
+      "bytes": 540,
+      "sha256": "ce17a88e818f2c7b45f1ff2f5d36e65635ca7a79f25812ce05e6adf63fad99a4"
+    }
+  ]
+}
