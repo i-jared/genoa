@@ -47,7 +47,7 @@ To run the app manually against the test server, set the scheme environment vari
 
 The accompanying backend changes are backward-compatible and require **no D1 migration**. They add `live_fmp4`/`apns` capability flags, authorized HLS initialization and `.m4s` endpoints, APNs delivery, platform-aware device registration, and device-specific unregister. Android's MPEG-TS and FCM paths remain supported.
 
-Deploy the updated Worker before enabling iOS live sharing. The app checks `live_fmp4` before publishing a live message; an older server can still handle private recordings and other existing APIs. Source changes alone do not update the deployed service.
+The updated Worker was deployed on September 21, 2026 as version `be64f420-9921-472c-b2df-4fc28e659efe`. Production health and unauthenticated access checks passed; see the [rollout record](../docs/FEATURES.md#approved-ios-compatible-backend-rollout--september-21-2026). The app checks `live_fmp4` before publishing a live message. `APNS_CREDENTIALS` remains unconfigured, so iOS push delivery is not yet enabled.
 
 Set an `APNS_CREDENTIALS` Worker secret containing this structure, using a real Apple Push Notifications authentication key:
 
@@ -59,6 +59,6 @@ Never commit the secret or a `.p8` key. The APNs sender chooses sandbox or produ
 
 ## Release gates
 
-See [FEATURES.md](../docs/FEATURES.md) for measured verification. Simulator compilation and synthetic media tests do not establish full physical-device parity. Remaining gates include two-device iOS/Android camera and live audio/video, live interruption/rotation, long captures and low storage, OS-terminated/background transfers, APNs credentials and delivery, Photos/Files export, VoiceOver/Switch Control/Dynamic Type, privacy/App Store declarations, signing, and backend deployment. Captions/transcripts remain hidden to match current Android. Universal HTTPS invite links, social sign-in, and password recovery remain outside the existing implemented Android feature set.
+See [FEATURES.md](../docs/FEATURES.md) for measured verification. Simulator compilation and synthetic media tests do not establish full physical-device parity. Remaining gates include two-device iOS/Android camera and live audio/video, live interruption/rotation, long captures and low storage, OS-terminated/background transfers, APNs credentials and delivery, Photos/Files export, VoiceOver/Switch Control/Dynamic Type, privacy/App Store declarations, and signing. Captions/transcripts remain hidden to match current Android. Universal HTTPS invite links, social sign-in, and password recovery remain outside the existing implemented Android feature set.
 
 Apple references: [background file transfers](https://developer.apple.com/documentation/foundation/downloading-files-in-the-background), [segmented asset writing](https://developer.apple.com/documentation/avfoundation/avassetwriter/preferredoutputsegmentinterval), and [APNs requests](https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns).

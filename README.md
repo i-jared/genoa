@@ -14,7 +14,7 @@ Install `artifacts/genoa-android-debug.apk` on Android 10 or newer. It defaults 
 
 ## Native iOS
 
-Open [ios/Genoa.xcodeproj](ios/Genoa.xcodeproj) in Xcode 26 or later. The SwiftUI/AVFoundation app targets iOS 17+, uses the Genoa design system and existing accounts, and includes native recording, live HLS, durable uploads, playback, and contextual conversation/account controls. See [iOS build, test, and Apple configuration instructions](ios/README.md). The iOS-compatible Worker changes must be deployed for live sharing; signing, APNs configuration, and physical-device parity verification remain release steps.
+Open [ios/Genoa.xcodeproj](ios/Genoa.xcodeproj) in Xcode 26 or later. The SwiftUI/AVFoundation app targets iOS 17+, uses the Genoa design system and existing accounts, and includes native recording, live HLS, durable uploads, playback, and contextual conversation/account controls. See [iOS build, test, and Apple configuration instructions](ios/README.md). The iOS-compatible Worker is deployed to production; signing, APNs configuration, and physical-device parity verification remain release steps.
 
 ## Run locally
 

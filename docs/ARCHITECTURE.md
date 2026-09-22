@@ -32,4 +32,4 @@ AVCaptureSession supplies video/audio samples to a local H.264/AAC MP4 writer an
 
 The APNs sender uses a scoped Apple signing key supplied as a Worker secret. Device records now distinguish Android, iOS sandbox, and iOS production; device-specific unregister avoids removing another phone's notification registration. Existing Android FCM clients remain compatible. Background listening has one AVPlayer owner with lock-screen commands. iOS camera capture stops and finalizes when backgrounded; upload continuation remains subject to OS scheduling.
 
-The implementation and verification do not deploy these Worker changes or provision Apple credentials. See [iOS setup](../ios/README.md) and the [verification record](FEATURES.md).
+The iOS-compatible Worker was deployed on September 21, 2026; Apple credentials remain unconfigured. See [iOS setup](../ios/README.md) and the [verification record](FEATURES.md).
