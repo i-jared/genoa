@@ -7,7 +7,7 @@ final class BackgroundTransfer: NSObject, URLSessionTaskDelegate, @unchecked Sen
   private var continuations: [Int: CheckedContinuation<Void, Error>] = [:]
   private var completion: (() -> Void)?
   private var storedSession: URLSession?
-  static let identifier = "com.talkgenoa.ios.media-transfer"
+  static let identifier = "app.genoa.media-transfer"
   var session: URLSession {
     lock.lock()
     defer { lock.unlock() }

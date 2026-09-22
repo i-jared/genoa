@@ -14,7 +14,7 @@ Install `artifacts/genoa-android-debug.apk` on Android 10 or newer. It defaults 
 
 ## Native iOS
 
-Open [ios/Genoa.xcodeproj](ios/Genoa.xcodeproj) in Xcode 26 or later. The SwiftUI/AVFoundation app targets iOS 17+, uses the Genoa design system and existing accounts, and includes native recording, live HLS, durable uploads, playback, and contextual conversation/account controls. See [iOS build, test, and Apple configuration instructions](ios/README.md). The iOS-compatible Worker is deployed to production; signing, APNs configuration, and physical-device parity verification remain release steps.
+Open [ios/Genoa.xcodeproj](ios/Genoa.xcodeproj) in Xcode 26 or later. The SwiftUI/AVFoundation app targets iOS 17+, uses the Genoa design system and existing accounts, and includes native recording, live HLS, durable uploads, playback, and contextual conversation/account controls. See [iOS build, test, and Apple configuration instructions](ios/README.md). The iOS-compatible Worker is deployed to production; App Store signing is verified; backend APNs configuration and physical-device parity verification remain release steps.
 
 ## Run locally
 
@@ -36,7 +36,7 @@ cd android
 ./gradlew :app:assembleDebug :app:lintDebug
 ```
 
-The installable development APK is `android/app/build/outputs/apk/debug/app-debug.apk`. It uses the development signing key. Configure your own release signing before distribution through Google Play.
+The installable development APK is `android/app/build/outputs/apk/debug/app-debug.apk`. It uses the development signing key. The store application ID is `app.genoa`; see the release handoff for the upload-key signing setup.
 
 ## Verification
 
@@ -84,3 +84,7 @@ Required Worker secrets: `BETTER_AUTH_SECRET`, `BETA_INVITE_CODE`, `FCM_SERVICE_
 ## Optional AI integration check
 
 `backend/tools/verify-ai.mjs` uses only the bundled synthetic speech fixture. With `TEST_API_URL` and `TEST_INVITE_CODE` set for a dedicated test deployment, run `node tools/verify-ai.mjs` from `backend/`. It creates a disposable account, uploads the sample, checks actual transcription/summary/caption output and consent revocation, then deletes the account. This invokes paid Workers AI models; run it deliberately, not as part of ordinary unit tests.
+
+## Release builds and store assets
+
+See [the release handoff](store/README.md) for the Android APK/AAB, signed iOS IPA/dSYMs, verified icons and store screenshots, listing copy, checksums, and repeatable signing commands. Both store app IDs are `app.genoa`. Android APK/AAB and the iOS App Store IPA are signed and verified. Store-account requirements and physical-device verification remain.

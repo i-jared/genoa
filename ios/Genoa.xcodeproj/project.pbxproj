@@ -34,6 +34,7 @@
 		DA69FD94176E88EA0B9F5F4B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0501FCC8447886881AA1DCD2 /* Models.swift */; };
 		E15A578B15FFC76B99A6274E /* MediaLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 413AA17ED2B97D8A61FB7AC0 /* MediaLibrary.swift */; };
 		E8504056700D78672ED44B3E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6D332ED59A98802F08653486 /* Assets.xcassets */; };
+		F395F218F19725BC0AE9C27C /* StoreScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9E7AD3AE485B40D4AA3A55 /* StoreScreenshotTests.swift */; };
 		FF6EF5354E00B49555261E68 /* Thumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3212FDE58DE3FF5F9BCF06 /* Thumbnails.swift */; };
 /* End PBXBuildFile section */
 
@@ -85,6 +86,7 @@
 		E596AEEAFF0FE5059B9CFA8A /* SessionVaultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVaultTests.swift; sourceTree = "<group>"; };
 		E874A7A6054836A89E732763 /* GenoaTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenoaTheme.swift; sourceTree = "<group>"; };
 		ECB8A0BC4E2C3C3C3E1F42C1 /* GenoaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenoaApp.swift; sourceTree = "<group>"; };
+		ED9E7AD3AE485B40D4AA3A55 /* StoreScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreScreenshotTests.swift; sourceTree = "<group>"; };
 		F82C558F5810D9720090D7FC /* BackgroundTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTransfer.swift; sourceTree = "<group>"; };
 		FAC135065045840C0D6455E9 /* CaptureEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureEngine.swift; sourceTree = "<group>"; };
 		FED8B0CBA1BD817717BF0C12 /* GenoaFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenoaFlowTests.swift; sourceTree = "<group>"; };
@@ -108,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				FED8B0CBA1BD817717BF0C12 /* GenoaFlowTests.swift */,
+				ED9E7AD3AE485B40D4AA3A55 /* StoreScreenshotTests.swift */,
 			);
 			path = GenoaUITests;
 			sourceTree = "<group>";
@@ -277,16 +280,16 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					35B4CADA8E81CF1D4B7847E6 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = DCWP7J7692;
 						ProvisioningStyle = Automatic;
 						TestTargetID = DD165E7FCDD7FA52FF33D811;
 					};
 					6D20574A63BA531FE0E45F05 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = DCWP7J7692;
 						ProvisioningStyle = Automatic;
 					};
 					DD165E7FCDD7FA52FF33D811 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = DCWP7J7692;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -359,6 +362,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				22138FCB67FF2DFED2F65C32 /* GenoaFlowTests.swift in Sources */,
+				F395F218F19725BC0AE9C27C /* StoreScreenshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -398,7 +402,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.talkgenoa.GenoaTests;
+				PRODUCT_BUNDLE_IDENTIFIER = app.genoa.GenoaTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Genoa.app/Genoa";
@@ -415,7 +419,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.talkgenoa.GenoaUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = app.genoa.GenoaUITests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = Genoa;
@@ -459,7 +463,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = DCWP7J7692;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -502,7 +506,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.talkgenoa.GenoaTests;
+				PRODUCT_BUNDLE_IDENTIFIER = app.genoa.GenoaTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Genoa.app/Genoa";
@@ -519,7 +523,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.talkgenoa.GenoaUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = app.genoa.GenoaUITests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = Genoa;
@@ -563,7 +567,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = DCWP7J7692;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -601,7 +605,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.talkgenoa.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = app.genoa;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -619,7 +623,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.talkgenoa.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = app.genoa;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

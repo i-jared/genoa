@@ -1,0 +1,1 @@
+Unwatched counts now follow completed watches. Watch progress survives connection loss and retries when you reconnect. Reminder notifications open the relevant message. Playback startup and thumbnail loading are improved.

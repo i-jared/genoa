@@ -40,10 +40,10 @@ Validate supported codecs/dimensions/duration before publication, fail unsupport
 
 ## Release and operating gates
 
-- **Release signing:** [Android build configuration](../android/app/build.gradle.kts) has no production signing configuration. The installable APK uses the development key; the optimized release APK is unsigned. Establish the release key/Play signing plan before distributing broadly.
+- **Release signing:** [Android build configuration](../android/app/build.gradle.kts) now supports environment-based production signing. The earlier beta uses the development key. The `app.genoa` APK and AAB are signed with the newly authorized upload key; back up its private material and enroll in Play App Signing. Apple team/bundle provisioning and cloud-managed App Store signing/export are complete; the final IPA signature and production push entitlement are verified. See [the release handoff](../store/README.md).
 - **Account recovery:** [Authentication](../backend/src/auth.ts) enables email/password but has no configured verification or password-reset delivery. Add and test recovery before public enrollment.
 - **Operations:** queue retries, a dead-letter queue, and logs exist. Alerting, dead-letter triage/redrive, cost/storage alerts, and a rehearsed metadata/media restore procedure remain unverified. A recovery bookmark is not a restore drill.
-- **Repeatable releases:** this workspace is not a Git checkout, and no CI workflow was found. Put the reviewed source under version control and run builds, tests, migrations, and deployment checks in a repeatable pipeline.
+- **Repeatable releases:** the source is now in Git and local release scripts are supplied; no CI workflow was found. Review and commit the release changes and run builds, tests, migrations, and deployment checks in a repeatable pipeline.
 - **Device/accessibility evidence:** verify two-device send/watch/reply, long recordings, weak-network restart/retry, interruptions, large text, TalkBack, and an optimized signed build. Emulator screenshots alone cannot establish camera, battery, or background behavior.
 
 ## Changes and evidence from this pass

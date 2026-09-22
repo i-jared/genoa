@@ -5,7 +5,7 @@ enum SessionVault {
   private static var query: [String: Any] {
     [
       kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: "com.talkgenoa.session", kSecAttrAccount as String: "current",
+      kSecAttrService as String: "app.genoa.session", kSecAttrAccount as String: "current",
     ]
   }
   static func read() throws -> Credentials? {

@@ -15,3 +15,8 @@ ios/DerivedData/
 **/xcuserdata/
 *.xcuserstate
 *.p8
+
+android/.kotlin/
+*.p12
+*.mobileprovision
+*.xcarchive/

@@ -1,0 +1,1 @@
+The first native Genoa app for iPhone and iPad: private video, voice, photos, conversations, playback, reactions, bookmarks, reminders, and saved drafts. Uses your existing Genoa account. Invite-only beta.

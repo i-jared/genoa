@@ -6,7 +6,7 @@ Native SwiftUI application for iPhone and iPad, targeting iOS 17+. It uses the s
 
 The Xcode project and shared scheme are checked in. If source files or build settings change, regenerate with `xcodegen generate --spec ios/project.yml` from the repository root (XcodeGen is a development tool, not an app dependency).
 
-For a simulator, use ordinary Xcode signing; Keychain integration tests require the simulator's ad-hoc signature. Do not disable code signing for running tests. Device builds require selecting your Apple development team and provisioning `com.talkgenoa.ios`, including Push Notifications. Debug uses the APNs sandbox entitlement; Release uses production. Change the bundle identifier and the backend APNs topic together if necessary.
+For a simulator, use ordinary Xcode signing; Keychain integration tests require the simulator's ad-hoc signature. Do not disable code signing for running tests. Device builds require selecting your Apple development team and provisioning `app.genoa`, including Push Notifications. Debug uses the APNs sandbox entitlement; Release uses production. Change the bundle identifier and the backend APNs topic together if necessary.
 
 An unsigned device compilation can be checked without Apple credentials:
 
@@ -52,7 +52,7 @@ The updated Worker was deployed on September 21, 2026 as version `be64f420-9921-
 Set an `APNS_CREDENTIALS` Worker secret containing this structure, using a real Apple Push Notifications authentication key:
 
 ```json
-{"team_id":"YOURTEAMID","key_id":"YOURKEY_ID","bundle_id":"com.talkgenoa.ios","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"}
+{"team_id":"YOURTEAMID","key_id":"YOURKEY_ID","bundle_id":"app.genoa","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"}
 ```
 
 Never commit the secret or a `.p8` key. The APNs sender chooses sandbox or production from the registered device platform. Notifications carry generic text and exact conversation/message/event IDs. The server honors the existing membership, block, and notification rules. On-device receipt, cold-launch routing, token rotation, and multi-device sign-out require physical-device validation.
@@ -62,3 +62,7 @@ Never commit the secret or a `.p8` key. The APNs sender chooses sandbox or produ
 See [FEATURES.md](../docs/FEATURES.md) for measured verification. Simulator compilation and synthetic media tests do not establish full physical-device parity. Remaining gates include two-device iOS/Android camera and live audio/video, live interruption/rotation, long captures and low storage, OS-terminated/background transfers, APNs credentials and delivery, Photos/Files export, VoiceOver/Switch Control/Dynamic Type, privacy/App Store declarations, and signing. Captions/transcripts remain hidden to match current Android. Universal HTTPS invite links, social sign-in, and password recovery remain outside the existing implemented Android feature set.
 
 Apple references: [background file transfers](https://developer.apple.com/documentation/foundation/downloading-files-in-the-background), [segmented asset writing](https://developer.apple.com/documentation/avfoundation/avassetwriter/preferredoutputsegmentinterval), and [APNs requests](https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns).
+
+## Distribution artifacts
+
+The release handoff in [store/README.md](../store/README.md) includes a signed App Store Connect IPA with matching dSYMs, App Store screenshot sets for iPhone and iPad, and default/dark/tinted app icons compiled into the app. `scripts/release/ios.sh --cloud-sign` archives and exports locally using Xcode cloud-managed distribution signing when an authorized team is supplied. The owner authorized Whatado, LLC (`DCWP7J7692`), and `app.genoa` was provisioned. The exported IPA is signed and verified with production push permissions. Cloud signing resolved the initial local Keychain blocker. Backend APNs credentials and physical-device verification still remain.

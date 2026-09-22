@@ -1,12 +1,27 @@
 plugins { id("com.google.gms.google-services"); id("com.android.application"); id("org.jetbrains.kotlin.android"); id("org.jetbrains.kotlin.plugin.compose") }
+val releaseSigningNames = listOf("GENOA_KEYSTORE", "GENOA_KEYSTORE_PASSWORD", "GENOA_KEY_ALIAS", "GENOA_KEY_PASSWORD")
+val releaseSigning = releaseSigningNames.associateWith { providers.environmentVariable(it).orNull }
+require(releaseSigning.values.all { it == null } || releaseSigning.values.all { !it.isNullOrBlank() }) {
+    "Provide all four GENOA signing environment variables, or none for an unsigned build."
+}
 android {
     namespace = "app.gather"
     compileSdk = 36
-    defaultConfig { applicationId = "app.gather"; minSdk = 29; targetSdk = 36; versionCode = 12; versionName = "0.2.8"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
+    defaultConfig { applicationId = "app.genoa"; minSdk = 29; targetSdk = 36; versionCode = 12; versionName = "0.2.8"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
-    buildTypes { release { isMinifyEnabled = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") } }
+    if (releaseSigning.values.all { !it.isNullOrBlank() }) {
+        signingConfigs.create("production") {
+            storeFile = file(releaseSigning.getValue("GENOA_KEYSTORE")!!)
+            storePassword = releaseSigning.getValue("GENOA_KEYSTORE_PASSWORD")
+            keyAlias = releaseSigning.getValue("GENOA_KEY_ALIAS")
+            keyPassword = releaseSigning.getValue("GENOA_KEY_PASSWORD")
+        }
+    }
+    buildTypes { release {
+        signingConfig = signingConfigs.findByName("production")
+        isMinifyEnabled = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") } }
 }
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2025.09.01"))

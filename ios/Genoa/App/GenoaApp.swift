@@ -27,7 +27,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
     UNUserNotificationCenter.current().delegate = self
-    BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.talkgenoa.ios.sync", using: nil) {
+    BGTaskScheduler.shared.register(forTaskWithIdentifier: "app.genoa.sync", using: nil) {
       task in
       let work = Task { @MainActor [weak self] in
         await self?.model?.refresh()
@@ -54,7 +54,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     }
   }
   static func scheduleSync() {
-    let request = BGProcessingTaskRequest(identifier: "com.talkgenoa.ios.sync")
+    let request = BGProcessingTaskRequest(identifier: "app.genoa.sync")
     request.requiresNetworkConnectivity = true
     request.earliestBeginDate = Date(timeIntervalSinceNow: 60)
     try? BGTaskScheduler.shared.submit(request)
