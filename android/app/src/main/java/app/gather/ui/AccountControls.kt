@@ -54,7 +54,7 @@ fun AccountControls(vm: GenoaViewModel, onDeleted: () -> Unit) {
     }
     if (notice.isNotEmpty()) Text(notice)
     reminders?.let { rows ->
-        AlertDialog(
+        GenoaDialog(
             onDismissRequest = { reminders = null },
             title = { Text("Your reminders") },
             text = {
@@ -83,7 +83,7 @@ fun AccountControls(vm: GenoaViewModel, onDeleted: () -> Unit) {
         )
     }
     if (delete)
-        AlertDialog(
+        GenoaDialog(
             onDismissRequest = { delete = false },
             title = { Text("Delete your account?") },
             text = {

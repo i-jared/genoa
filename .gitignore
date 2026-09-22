@@ -1,22 +1,43 @@
+# Dependencies and local service state
 node_modules/
 .wrangler/
 .dev.vars
 .env*
 !.env.example
+
+# Generated releases, verification output, and private local material
+/dist/
+/.local/
+/artifacts/
+*.apk
+*.aab
+*.ipa
+*.xcarchive/
+*.xcresult/
+*.log
+
+# Android
 android/.gradle/
+android/.kotlin/
 android/**/build/
 android/local.properties
-*.jks
-*.keystore
-artifacts/
-.DS_Store
+
+# Apple
 ios/build/
 ios/DerivedData/
 **/xcuserdata/
 *.xcuserstate
-*.p8
 
-android/.kotlin/
+# Credentials and signing material
+*.jks
+*.keystore
+*.p8
 *.p12
 *.mobileprovision
-*.xcarchive/
+
+# Editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
+__pycache__/
+*.pyc

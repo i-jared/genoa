@@ -14,6 +14,7 @@ import org.json.JSONObject
 
 data class AppState(
     val loading: Boolean = false,
+    val loginProviders: List<String> = emptyList(),
     val person: Person? = null,
     val conversations: List<Conversation> = emptyList(),
     val selected: Conversation? = null,
@@ -24,6 +25,7 @@ data class AppState(
     val connectionError: String? = null,
     val recordingPerson: String? = null,
     val openingConversation: Boolean = false,
+    val replyMode: Boolean = false,
     val openingFocusId: String? = null,
     val hasOlder: Boolean = false,
     val hasNewer: Boolean = false,
@@ -67,12 +69,18 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repo.progressChanges.collect {
                 val account = repo.progressAccount
-                val updated = withContext(Dispatchers.IO) {
-                    repo.drafts.watchProgress(account) to repo.cachedConversations()
-                }
-                if (account == repo.progressAccount) _state.update {
-                    it.copy(messages = applyWatchProgress(it.messages, updated.first, cached = true), conversations = updated.second)
-                }
+                val updated =
+                    withContext(Dispatchers.IO) {
+                        repo.drafts.watchProgress(account) to repo.cachedConversations()
+                    }
+                if (account == repo.progressAccount)
+                    _state.update {
+                        it.copy(
+                            messages =
+                                applyWatchProgress(it.messages, updated.first, cached = true),
+                            conversations = updated.second,
+                        )
+                    }
             }
         }
         viewModelScope.launch {
@@ -150,6 +158,39 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(person = person, conversations = conversations, drafts = saved) }
     }
 
+    fun loadLoginProviders() =
+        viewModelScope.launch {
+            try {
+                val rows = repo.api.json("GET", "/auth/mobile/providers").getJSONArray("providers")
+                _state.update {
+                    it.copy(
+                        loginProviders =
+                            (0 until rows.length())
+                                .map { i -> rows.getString(i) }
+                                .filter { it in listOf("google", "apple") }
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                /* Email stays available offline. */
+            }
+        }
+
+    fun socialSignIn(provider: String, open: (android.net.Uri) -> Unit) = run {
+        open(SocialSignIn(repo).start(provider))
+    }
+
+    fun completeSocialSignIn(uri: android.net.Uri) = run {
+        SocialSignIn(repo).complete(uri)
+        val person = repo.me()
+        repo.recoverDrafts()
+        val drafts =
+            withContext(Dispatchers.IO) { repo.drafts.all().filter { it.ownerId == person.id } }
+        val conversations = repo.conversations()
+        _state.update { it.copy(person = person, conversations = conversations, drafts = drafts) }
+    }
+
     fun refresh() = run { refreshData() }
 
     suspend fun synchronizeWhileVisible(): Unit = coroutineScope {
@@ -160,14 +201,12 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
-                _state.update { it.copy(connectionError = "Couldn't refresh messages. Try refreshing again.") }
+                _state.update {
+                    it.copy(connectionError = "Couldn't refresh messages. Try refreshing again.")
+                }
             }
         }
-        launch {
-            repo.syncRequests.collect {
-                sync()
-            }
-        }
+        launch { repo.syncRequests.collect { sync() } }
         while (isActive) {
             sync()
             delay(5_000)
@@ -186,27 +225,45 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
                 _state.update { it.copy(error = "This conversation is no longer available.") }
             } else {
                 var unavailable = false
-                val page = try {
-                    repo.watchPage(conversationId, messageId = messageId)
-                } catch (error: ApiException) {
-                    if (messageId == null || error.status != 404) throw error
-                    unavailable = true
-                    repo.watchPage(conversationId)
-                }
+                val page =
+                    try {
+                        repo.watchPage(conversationId, messageId = messageId)
+                    } catch (error: ApiException) {
+                        if (messageId == null || error.status != 404) throw error
+                        unavailable = true
+                        repo.watchPage(conversationId)
+                    }
                 currentCoroutineContext().ensureActive()
                 if (current != generation) return true
-                open(conversation, initialPage = page, notice = if (unavailable) "This message is no longer available." else null)
+                open(
+                    conversation,
+                    initialPage = page,
+                    notice = if (unavailable) "This message is no longer available." else null,
+                )
             }
             true
         } catch (error: ApiException) {
             if (error.status == 401) {
                 repo.session.token = null
-                _state.update { it.copy(person = null, selected = null, messages = emptyList(), error = "Sign in again to open this message.") }
-            }
-            else _state.update { it.copy(connectionError = "Couldn't open this message yet. Retrying when connected.") }
+                _state.update {
+                    it.copy(
+                        person = null,
+                        selected = null,
+                        messages = emptyList(),
+                        error = "Sign in again to open this message.",
+                    )
+                }
+            } else
+                _state.update {
+                    it.copy(
+                        connectionError = "Couldn't open this message yet. Retrying when connected."
+                    )
+                }
             false
         } catch (error: java.io.IOException) {
-            _state.update { it.copy(connectionError = "Waiting for a connection to open this message.") }
+            _state.update {
+                it.copy(connectionError = "Waiting for a connection to open this message.")
+            }
             false
         }
     }
@@ -242,11 +299,26 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
                 if (current != generation) return@withLock
                 if (e.status == 401) {
                     repo.session.token = null
-                    _state.update { it.copy(person = null, selected = null, messages = emptyList(), error = "Sign in again to sync your messages.") }
+                    _state.update {
+                        it.copy(
+                            person = null,
+                            selected = null,
+                            messages = emptyList(),
+                            error = "Sign in again to sync your messages.",
+                        )
+                    }
                 } else if (e.status in listOf(403, 404)) {
-                    _state.update { it.copy(selected = null, messages = emptyList(), error = "This conversation is no longer available.") }
+                    _state.update {
+                        it.copy(
+                            selected = null,
+                            messages = emptyList(),
+                            error = "This conversation is no longer available.",
+                        )
+                    }
                 } else {
-                    _state.update { it.copy(connectionError = "Couldn't refresh messages. Retrying shortly.") }
+                    _state.update {
+                        it.copy(connectionError = "Couldn't refresh messages. Retrying shortly.")
+                    }
                 }
             } catch (e: java.io.IOException) {
                 if (current == generation)
@@ -259,7 +331,13 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-    fun open(c: Conversation, explicitMessage: Message? = null, messageId: String? = null, initialPage: WatchPage? = null, notice: String? = null) {
+    fun open(
+        c: Conversation,
+        explicitMessage: Message? = null,
+        messageId: String? = null,
+        initialPage: WatchPage? = null,
+        notice: String? = null,
+    ) {
         generation++
         val current = generation
         socket?.close(1000, "Switching conversation")
@@ -271,6 +349,7 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
                 note = "",
                 recordingPerson = null,
                 openingConversation = true,
+                replyMode = false,
                 openingFocusId = null,
                 hasOlder = false,
                 hasNewer = false,
@@ -280,22 +359,38 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
         }
         run {
             try {
-                val page = initialPage ?: try {
-                    repo.watchPage(c.id, around = explicitMessage?.seq, messageId = messageId)
-                } catch (error: ApiException) {
-                    if (messageId == null || error.status != 404) throw error
-                    repo.watchPage(c.id).also {
-                        if (current == generation) _state.update { it.copy(error = "This message is no longer available.") }
-                    }
-                }
+                val page =
+                    initialPage
+                        ?: try {
+                            repo.watchPage(
+                                c.id,
+                                around = explicitMessage?.seq,
+                                messageId = messageId,
+                            )
+                        } catch (error: ApiException) {
+                            if (messageId == null || error.status != 404) throw error
+                            repo.watchPage(c.id).also {
+                                if (current == generation)
+                                    _state.update {
+                                        it.copy(error = "This message is no longer available.")
+                                    }
+                            }
+                        }
                 if (current != generation) return@run
                 _state.update {
                     it.copy(
                         messages = page.messages,
-                        openingFocusId = explicitMessage?.id ?: page.focusId,
+                        openingFocusId =
+                            explicitMessage?.id
+                                ?: if (messageId != null) page.focusId
+                                else nextIncomingMessage(page.messages, it.person?.id)?.id,
                         hasOlder = page.hasOlder,
                         hasNewer = page.hasNewer,
                         openingConversation = false,
+                        replyMode =
+                            explicitMessage == null &&
+                                messageId == null &&
+                                nextIncomingMessage(page.messages, it.person?.id) == null,
                         error = notice ?: it.error,
                     )
                 }
@@ -359,6 +454,58 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
         refresh()
     }
 
+    fun replyMode(active: Boolean) {
+        _state.update { it.copy(replyMode = active) }
+    }
+
+    suspend fun incomingAfterRecording(): Message? {
+        val conversation = _state.value.selected ?: return null
+        val account = repo.session.userId
+        try {
+            var page = repo.watchPage(conversation.id)
+            while (true) {
+                if (_state.value.selected?.id != conversation.id || repo.session.userId != account)
+                    return null
+                applyPage(page)
+                val incoming = nextIncomingMessage(page.messages, account)
+                if (incoming != null || !page.hasNewer || page.messages.isEmpty()) {
+                    _state.update {
+                        it.copy(replyMode = incoming == null, openingFocusId = incoming?.id)
+                    }
+                    return incoming
+                }
+                val end = page.endSeq
+                page = repo.watchPage(conversation.id, after = end)
+                if (page.endSeq <= end) return null
+            }
+        } catch (_: java.io.IOException) {
+            // Keep the recorder usable offline; the durable outbox owns delivery retries.
+            return null
+        }
+    }
+
+    fun loadContacts(loaded: (List<Contact>) -> Unit) = run {
+        try {
+            loaded(repo.people())
+        } catch (e: Exception) {
+            loaded(emptyList())
+            throw e
+        }
+    }
+
+    suspend fun startConversation(
+        id: String,
+        members: List<String>,
+        inviteId: String,
+        openConversation: Boolean,
+    ): String {
+        repo.createConversation("", members, id, inviteId)
+        val conversations = repo.conversations()
+        _state.update { it.copy(conversations = conversations) }
+        if (openConversation) open(conversations.first { it.id == id })
+        return "${repo.session.baseUrl}/join/$inviteId"
+    }
+
     fun create(title: String, memberIds: List<String> = emptyList()) = run {
         val id = repo.createConversation(title, memberIds)
         val cs = repo.conversations()
@@ -368,6 +515,7 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
 
     fun join(token: String) = run {
         val id = repo.join(token)
+        if (repo.session.pendingInvite == token) repo.session.pendingInvite = null
         val cs = repo.conversations()
         _state.update { it.copy(conversations = cs) }
         open(cs.first { it.id == id })

@@ -122,47 +122,84 @@ struct CreateConversationScreen: View {
   @Environment(\.dismiss) private var dismiss
   @State private var people: [Contact] = []
   @State private var selected: Set<String> = []
-  @State private var title = ""
   @State private var busy = false
+  @State private var loading = true
   @State private var id = UUID().uuidString.lowercased()
+  @State private var invite = UUID().uuidString.lowercased()
+  @State private var link: URL?
+  @State private var share = false
+  @State private var copied = false
   var body: some View {
     NavigationStack {
-      Form {
-        Section("People") {
-          if people.isEmpty { Text("Create a conversation, then share its invitation.") }
-          ForEach(people) { p in
-            Button {
-              if selected.contains(p.id) { selected.remove(p.id) } else { selected.insert(p.id) }
-            } label: {
-              HStack {
-                Text(p.name)
-                Spacer()
-                if selected.contains(p.id) { GenoaIcon(name: "check") }
-              }
-            }.accessibilityAddTraits(selected.contains(p.id) ? .isSelected : [])
+      VStack(alignment: .leading, spacing: 20) {
+        Text("Choose your people, or send a link. You can name it later.").foregroundStyle(
+          Genoa.muted)
+        HStack {
+          Button(copied ? "Link copied" : "Copy invite link") { start(action: "copy") }
+          Spacer()
+          Button("Share link") { start(action: "share") }
+        }.buttonStyle(.bordered).controlSize(.large).disabled(busy)
+        Text("Your contacts").font(.headline)
+        if loading {
+          ProgressView("Loading contacts…")
+        } else if people.isEmpty {
+          Text("People you talk with will appear here. Share a link to invite someone new.")
+            .foregroundStyle(Genoa.muted)
+        }
+        ScrollView {
+          LazyVStack(spacing: 8) {
+            ForEach(people) { p in
+              Button {
+                if selected.contains(p.id) { selected.remove(p.id) } else { selected.insert(p.id) }
+              } label: {
+                HStack(spacing: 12) {
+                  Avatar(name: p.name, size: 40)
+                  Text(p.name).font(.headline)
+                  Spacer()
+                  GenoaIcon(name: selected.contains(p.id) ? "check" : "add")
+                }.frame(minHeight: 56).contentShape(Rectangle())
+              }.disabled(busy || link != nil).accessibilityAddTraits(
+                selected.contains(p.id) ? .isSelected : [])
+            }
           }
         }
-        Section("Conversation name") { TextField("Name", text: $title) }
-        Button(busy ? "Creating…" : "Create conversation") {
-          busy = true
-          Task {
-            await model.perform {
-              guard let api = model.api else { return }
-              let result: IDResponse = try await api.call(
-                "/api/conversations", method: "POST",
-                body: ["id": id, "title": title, "member_ids": Array(selected)])
-              await model.refresh()
-              if let c = model.conversations.first(where: { $0.id == result.id }) {
-                model.path = [c]
-              }
-              dismiss()
-            }
-            busy = false
-          }
-        }.disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || title.count > 80 || busy)
-      }.navigationTitle("New conversation").toolbar { Button("Cancel") { dismiss() } }.task {
-        await model.perform { people = try await model.api?.call("/api/people") ?? [] }
+        if link != nil {
+          Text("Your conversation is ready. The invitation link works for 7 days.").font(.footnote)
+            .foregroundStyle(Genoa.muted)
+        }
+        Button(busy ? "Preparing…" : link != nil ? "Open conversation" : "Start conversation") {
+          start(action: "open")
+        }
+        .buttonStyle(PrimaryButton()).disabled(busy)
+      }.padding(24).navigationTitle("Start a conversation").navigationBarTitleDisplayMode(.inline)
+        .toolbar { Button("Cancel") { dismiss() }.disabled(busy) }.genoaPage()
+        .task {
+          await model.perform { people = try await model.contacts() }
+          loading = false
+        }
+        .sheet(isPresented: $share) { if let link { ShareSheet(items: [link]) } }
+        .interactiveDismissDisabled(busy)
+    }
+  }
+  func start(action: String) {
+    guard !busy else { return }
+    busy = true
+    Task {
+      await model.perform {
+        let url = try await model.startConversation(
+          id: id, members: Array(selected), invite: invite)
+        link = url
+        if action == "copy" {
+          UIPasteboard.general.url = url
+          copied = true
+        } else if action == "share" {
+          share = true
+        } else if let conversation = model.conversations.first(where: { $0.id == id }) {
+          model.path = [conversation]
+          dismiss()
+        }
       }
+      busy = false
     }
   }
 }

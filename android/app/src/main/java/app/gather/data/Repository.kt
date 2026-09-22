@@ -6,14 +6,14 @@ import androidx.work.*
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import kotlinx.coroutines.withContext
 import org.json.JSONArray
 
 class Repository(private val context: Context, val api: Api = Api(SessionStore(context))) {
@@ -24,14 +24,34 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
     @OptIn(ExperimentalCoroutinesApi::class)
     private val persistenceDispatcher = Dispatchers.IO.limitedParallelism(1)
     private val persistenceScope = CoroutineScope(SupervisorJob() + persistenceDispatcher)
-    val syncRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-    val progressChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-    val progressErrors = MutableSharedFlow<String>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-    val progressAccount: String get() = "${session.baseUrl}|${session.userId}"
+    val syncRequests =
+        MutableSharedFlow<Unit>(
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
+    val progressChanges =
+        MutableSharedFlow<Unit>(
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
+    val progressErrors =
+        MutableSharedFlow<String>(
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
+    val progressAccount: String
+        get() = "${session.baseUrl}|${session.userId}"
 
-    fun requestSync() { syncRequests.tryEmit(Unit) }
+    fun requestSync() {
+        syncRequests.tryEmit(Unit)
+    }
 
-    fun queueProgress(message: Message, position: Long, watched: Boolean, account: String = progressAccount) {
+    fun queueProgress(
+        message: Message,
+        position: Long,
+        watched: Boolean,
+        account: String = progressAccount,
+    ) {
         if (session.userId.isBlank()) return
         persistenceScope.launch {
             try {
@@ -39,86 +59,146 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
-                progressErrors.tryEmit("Couldn't save watch progress. Check available storage and try again.")
+                progressErrors.tryEmit(
+                    "Couldn't save watch progress. Check available storage and try again."
+                )
             }
         }
     }
 
-    suspend fun saveWatchProgress(message: Message, position: Long, watched: Boolean, account: String = progressAccount) = withContext(persistenceDispatcher) {
-        progressWrites.withLock {
-            if (account != progressAccount || session.userId.isBlank()) return@withLock
-            val all = drafts.watchProgress(account)
-            val previous = all.find { it.messageId == message.id }
-            val finished = watched || message.watched || previous?.watched == true
-            val boundedPosition = position.coerceIn(0, 86_400_000)
-            if (previous?.positionMs == boundedPosition && previous.watched == finished) return@withLock
-            val progress = LocalWatchProgress(account, message.id, message.conversationId, boundedPosition, finished, UUID.randomUUID().toString())
-            val db = drafts.writableDatabase
-            db.beginTransaction()
-            try {
-                drafts.saveWatchProgress(progress)
-                if (finished && !message.watched && previous?.watched != true && message.authorId != session.userId && message.state == "ready") {
-                    drafts.cached("conversations")?.let { raw ->
-                        val rows = JSONArray(raw)
-                        for (i in 0 until rows.length()) {
-                            val row = rows.getJSONObject(i)
-                            if (row.getString("id") == message.conversationId) {
-                                row.put("unread", (row.optInt("unread") - 1).coerceAtLeast(0))
-                                if (message.kind in listOf("video", "audio")) row.put("unwatched", (row.optInt("unwatched") - 1).coerceAtLeast(0))
+    suspend fun saveWatchProgress(
+        message: Message,
+        position: Long,
+        watched: Boolean,
+        account: String = progressAccount,
+    ) =
+        withContext(persistenceDispatcher) {
+            progressWrites.withLock {
+                if (account != progressAccount || session.userId.isBlank()) return@withLock
+                val all = drafts.watchProgress(account)
+                val previous = all.find { it.messageId == message.id }
+                val finished = watched || message.watched || previous?.watched == true
+                val boundedPosition = position.coerceIn(0, 86_400_000)
+                if (previous?.positionMs == boundedPosition && previous.watched == finished)
+                    return@withLock
+                val progress =
+                    LocalWatchProgress(
+                        account,
+                        message.id,
+                        message.conversationId,
+                        boundedPosition,
+                        finished,
+                        UUID.randomUUID().toString(),
+                    )
+                val db = drafts.writableDatabase
+                db.beginTransaction()
+                try {
+                    drafts.saveWatchProgress(progress)
+                    if (
+                        finished &&
+                            !message.watched &&
+                            previous?.watched != true &&
+                            message.authorId != session.userId &&
+                            message.state == "ready"
+                    ) {
+                        drafts.cached("conversations")?.let { raw ->
+                            val rows = JSONArray(raw)
+                            for (i in 0 until rows.length()) {
+                                val row = rows.getJSONObject(i)
+                                if (row.getString("id") == message.conversationId) {
+                                    row.put("unread", (row.optInt("unread") - 1).coerceAtLeast(0))
+                                    if (message.kind in listOf("video", "audio"))
+                                        row.put(
+                                            "unwatched",
+                                            (row.optInt("unwatched") - 1).coerceAtLeast(0),
+                                        )
+                                }
                             }
+                            drafts.cache("conversations", rows.toString())
                         }
-                        drafts.cache("conversations", rows.toString())
                     }
+                    db.setTransactionSuccessful()
+                } finally {
+                    db.endTransaction()
                 }
-                db.setTransactionSuccessful()
-            } finally { db.endTransaction() }
-            if (all.none { it.dirty }) scheduleWatchProgress(account)
-            progressChanges.tryEmit(Unit)
-            requestSync()
+                if (all.none { it.dirty }) scheduleWatchProgress(account)
+                progressChanges.tryEmit(Unit)
+                requestSync()
+            }
         }
-    }
 
     fun scheduleWatchProgress(account: String = progressAccount) {
         if (session.userId.isBlank()) return
-        val work = OneTimeWorkRequestBuilder<WatchProgressWorker>()
-            .setInputData(workDataOf("account" to account))
-            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, java.util.concurrent.TimeUnit.SECONDS)
-            .build()
+        val work =
+            OneTimeWorkRequestBuilder<WatchProgressWorker>()
+                .setInputData(workDataOf("account" to account))
+                .setConstraints(
+                    Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+                )
+                .setBackoffCriteria(
+                    BackoffPolicy.EXPONENTIAL,
+                    30,
+                    java.util.concurrent.TimeUnit.SECONDS,
+                )
+                .build()
         // Append only when the durable queue becomes dirty; this also covers a worker finishing.
-        WorkManager.getInstance(context).enqueueUniqueWork("watch-progress:$account", ExistingWorkPolicy.APPEND_OR_REPLACE, work)
+        WorkManager.getInstance(context)
+            .enqueueUniqueWork(
+                "watch-progress:$account",
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
+                work,
+            )
     }
 
-    suspend fun syncWatchProgress() = withContext(Dispatchers.IO) {
-        progressSync.withLock {
-            val account = progressAccount
-            val base = session.baseUrl
-            val token = session.token ?: return@withLock
-            while (account == progressAccount && session.token != null) {
-                currentCoroutineContext().ensureActive()
-                val pending = drafts.watchProgress(account).filter { it.dirty }.take(100)
-                if (pending.isEmpty()) break
-                for (progress in pending) {
-                    if (account != progressAccount || session.token == null) return@withLock
-                    val request = Request.Builder().url("$base/api/messages/${progress.messageId}/progress")
-                        .header("Authorization", "Bearer $token").header("Origin", base)
-                        .put(json("position_ms" to progress.positionMs, "watched" to progress.watched).toString().toRequestBody("application/json".toMediaType())).build()
-                    api.client.newCall(request).execute().use { response ->
-                        if (response.code in listOf(403, 404)) {
-                            progressWrites.withLock { drafts.removeWatchProgress(account, progress.messageId) }
-                        } else {
-                            if (!response.isSuccessful) throw ApiException(response.code, "Watch progress is waiting to sync.")
-                            progressWrites.withLock { drafts.acknowledgeWatchProgress(progress) }
+    suspend fun syncWatchProgress() =
+        withContext(Dispatchers.IO) {
+            progressSync.withLock {
+                val account = progressAccount
+                val base = session.baseUrl
+                val token = session.token ?: return@withLock
+                while (account == progressAccount && session.token != null) {
+                    currentCoroutineContext().ensureActive()
+                    val pending = drafts.watchProgress(account).filter { it.dirty }.take(100)
+                    if (pending.isEmpty()) break
+                    for (progress in pending) {
+                        if (account != progressAccount || session.token == null) return@withLock
+                        val request =
+                            Request.Builder()
+                                .url("$base/api/messages/${progress.messageId}/progress")
+                                .header("Authorization", "Bearer $token")
+                                .header("Origin", base)
+                                .put(
+                                    json(
+                                            "position_ms" to progress.positionMs,
+                                            "watched" to progress.watched,
+                                        )
+                                        .toString()
+                                        .toRequestBody("application/json".toMediaType())
+                                )
+                                .build()
+                        api.client.newCall(request).execute().use { response ->
+                            if (response.code in listOf(403, 404)) {
+                                progressWrites.withLock {
+                                    drafts.removeWatchProgress(account, progress.messageId)
+                                }
+                            } else {
+                                if (!response.isSuccessful)
+                                    throw ApiException(
+                                        response.code,
+                                        "Watch progress is waiting to sync.",
+                                    )
+                                progressWrites.withLock {
+                                    drafts.acknowledgeWatchProgress(progress)
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
     fun localProgress(messages: List<Message>, cached: Boolean = false): List<Message> =
         applyWatchProgress(messages, drafts.watchProgress(progressAccount), cached)
-
 
     suspend fun recoverDrafts() =
         withContext(Dispatchers.IO) {
@@ -176,7 +256,6 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
                 "POST",
                 if (name == null) "/auth/sign-in/email" else "/auth/sign-up/email",
                 json("email" to email, "password" to password, "name" to name),
-                mapOf("X-Invite-Code" to invite),
             )
         session.userId = org.json.JSONObject(result).getJSONObject("user").getString("id")
         withContext(Dispatchers.IO) { drafts.clearCache() }
@@ -241,7 +320,9 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
             )
         if (before == null && !bookmarked)
             withContext(Dispatchers.IO) { drafts.cache("messages:$cid", a.toString()) }
-        return withContext(Dispatchers.IO) { localProgress((0 until a.length()).map { a.getJSONObject(it).message() }) }
+        return withContext(Dispatchers.IO) {
+            localProgress((0 until a.length()).map { a.getJSONObject(it).message() })
+        }
     }
 
     suspend fun watchPage(
@@ -265,7 +346,9 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
         if (query.isEmpty())
             withContext(Dispatchers.IO) { drafts.cache("messages:$cid", rows.toString()) }
         return WatchPage(
-            withContext(Dispatchers.IO) { localProgress((0 until rows.length()).map { rows.getJSONObject(it).message() }) },
+            withContext(Dispatchers.IO) {
+                localProgress((0 until rows.length()).map { rows.getJSONObject(it).message() })
+            },
             response.nullable("focus_id"),
             response.getBoolean("has_older"),
             response.getBoolean("has_newer"),
@@ -288,12 +371,17 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
         }
     }
 
-    suspend fun createConversation(title: String, memberIds: List<String> = emptyList()): String {
-        val id = UUID.randomUUID().toString()
+    suspend fun createConversation(
+        title: String,
+        memberIds: List<String> = emptyList(),
+        id: String = UUID.randomUUID().toString(),
+        inviteId: String? = null,
+    ): String {
         api.json(
             "POST",
             "/api/conversations",
             json("id" to id, "title" to title).apply {
+                if (inviteId != null) put("invite_id", inviteId)
                 if (memberIds.isNotEmpty()) put("member_ids", JSONArray(memberIds))
             },
         )

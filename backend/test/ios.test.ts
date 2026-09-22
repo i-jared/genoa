@@ -1,3 +1,4 @@
+import { localFetch as fetch } from "./http";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID, generateKeyPairSync } from "node:crypto";

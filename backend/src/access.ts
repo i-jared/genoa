@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Ctx, Env, Message } from "./types";
 export const id = z.string().uuid();
 export function fail(
-  status: 400 | 401 | 403 | 404 | 409 | 413 | 429 | 503,
+  status: 400 | 401 | 403 | 404 | 409 | 410 | 413 | 502 | 429 | 503,
   message: string,
 ): never {
   throw new HTTPException(status, { message });

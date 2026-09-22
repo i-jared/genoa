@@ -1,4 +1,5 @@
 import AVFoundation
+import AuthenticationServices
 import Network
 import SwiftUI
 import UserNotifications
@@ -114,7 +115,35 @@ final class AppModel: ObservableObject {
       try SessionVault.save(c)
       try await activate(c)
       await refresh()
+      if let invitation = pendingInvite { try await join(invitation) }
     } catch { self.error = error.localizedDescription }
+  }
+  @Published var loginProviders: [String] = []
+  func loadLoginProviders() async {
+    struct Providers: Decodable { let providers: [String] }
+    if let result: Providers = try? await API(endpoint: endpoint).call("/auth/mobile/providers") {
+      loginProviders = result.providers.filter { ["google", "apple"].contains($0) }
+    }
+  }
+  func socialSignIn(provider: String, flow: SocialSignIn) async {
+    guard !busy else { return }
+    busy = true
+    error = nil
+    defer { busy = false }
+    do {
+      let credentials = try await flow.signIn(provider: provider, endpoint: endpoint)
+      try SessionVault.save(credentials)
+      try await activate(credentials)
+      await refresh()
+      if let invitation = pendingInvite { try await join(invitation) }
+    } catch {
+      let failure = error as NSError
+      if failure.domain != ASWebAuthenticationSessionError.errorDomain
+        || failure.code != ASWebAuthenticationSessionError.canceledLogin.rawValue
+      {
+        self.error = error.localizedDescription
+      }
+    }
   }
   func reloadLocal() async {
     guard let store else { return }
@@ -213,6 +242,7 @@ final class AppModel: ObservableObject {
     tab = 0
   }
   func receive(url: URL) {
+    if url.scheme == "genoa", url.host == "auth" { return }  // ASWebAuthenticationSession owns this callback.
     guard ["genoa", "gather"].contains(url.scheme ?? ""), url.host == "join",
       let token = url.pathComponents.last, UUID(uuidString: token) != nil
     else {
@@ -221,6 +251,22 @@ final class AppModel: ObservableObject {
     }
     pendingInvite = token
     UserDefaults.standard.set(token, forKey: "pendingInvite")
+  }
+  func contacts() async throws -> [Contact] {
+    guard let api else { return [] }
+    return try await api.call("/api/people")
+  }
+  func startConversation(id: String, members: [String], invite: String) async throws -> URL {
+    guard let api else { throw APIError(status: 401, message: "Sign in to start a conversation.") }
+    struct Started: Decodable {
+      let id: String
+      let url: URL
+    }
+    let result: Started = try await api.call(
+      "/api/conversations", method: "POST",
+      body: ["id": id, "member_ids": members, "invite_id": invite])
+    await refresh()
+    return result.url
   }
   func join(_ input: String) async throws {
     guard let api else { return }

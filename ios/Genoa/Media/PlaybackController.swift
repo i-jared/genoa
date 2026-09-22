@@ -47,6 +47,8 @@ final class PlaybackController: ObservableObject {
         self.position = self.duration
         self.persist(watched: true)
         self.playing = false
+        await self.progressTask?.value
+        guard item === self.player.currentItem else { return }
         self.onEnd?()
       }
     }
@@ -169,6 +171,7 @@ final class PlaybackController: ObservableObject {
       } catch { self?.error = "Couldn’t save watch progress. Check available storage." }
     }
   }
+  func flushProgress() async { await progressTask?.value }
   func stop() {
     pause()
     currentTask?.cancel()

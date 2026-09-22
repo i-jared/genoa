@@ -4,8 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,8 +28,6 @@ fun ConversationsScreen(
 ) {
     var dialog by rememberSaveable { mutableStateOf("") }
     var input by rememberSaveable { mutableStateOf("") }
-    var createStep by rememberSaveable { mutableIntStateOf(0) }
-    var selectedPeople by remember { mutableStateOf(setOf<String>()) }
     var filter by rememberSaveable { mutableStateOf(false) }
     var searching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -139,8 +135,6 @@ fun ConversationsScreen(
                             TextButton({
                                 dialog = "create"
                                 input = ""
-                                createStep = 0
-                                selectedPeople = emptySet()
                             }) {
                                 Text("New conversation")
                             }
@@ -161,8 +155,6 @@ fun ConversationsScreen(
                     TextButton({
                         dialog = "create"
                         input = ""
-                        createStep = 0
-                        selectedPeople = emptySet()
                     }) {
                         GenoaIcon("add", null)
                         Spacer(Modifier.width(8.dp))
@@ -200,8 +192,6 @@ fun ConversationsScreen(
                             onDismissSelector()
                             dialog = "create"
                             input = ""
-                            createStep = 0
-                            selectedPeople = emptySet()
                         }) {
                             Text("New conversation")
                         }
@@ -216,23 +206,9 @@ fun ConversationsScreen(
                 }
             }
         }
-    if (dialog == "create")
-        CreateConversationDialog(
-            vm,
-            step = createStep,
-            name = input,
-            selected = selectedPeople,
-            onStep = { createStep = it },
-            onName = { input = it },
-            onSelected = { selectedPeople = it },
-            onCreate = {
-                vm.create(input, selectedPeople.toList())
-                dialog = ""
-            },
-            onClose = { dialog = "" },
-        )
+    if (dialog == "create") CreateConversationSheet(vm, onClose = { dialog = "" })
     else if (dialog.isNotEmpty())
-        AlertDialog(
+        GenoaDialog(
             onDismissRequest = { dialog = "" },
             title = { Text("Join with invitation") },
             text = {
@@ -261,88 +237,142 @@ fun ConversationsScreen(
         )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CreateConversationDialog(
-    vm: GenoaViewModel,
-    step: Int,
-    name: String,
-    selected: Set<String>,
-    onStep: (Int) -> Unit,
-    onName: (String) -> Unit,
-    onSelected: (Set<String>) -> Unit,
-    onCreate: () -> Unit,
-    onClose: () -> Unit,
-) {
+private fun CreateConversationSheet(vm: GenoaViewModel, onClose: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var people by remember { mutableStateOf<List<Contact>>(emptyList()) }
-    LaunchedEffect(Unit) { vm.run { people = vm.repo.people() } }
-    AlertDialog(
-        onDismissRequest = onClose,
-        title = { Text(if (step == 0) "Choose people" else "Name this conversation") },
-        text = {
-            Column(
-                Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (step == 0) {
-                    Text(
-                        "Choose people you already talk with. You can invite someone new after you create it."
-                    )
-                    if (people.isEmpty())
-                        Text(
-                            "People from your other conversations will appear here.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    people.forEach { person ->
-                        val chosen = person.id in selected
-                        Row(
-                            Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable {
-                                onSelected(
-                                    if (chosen) selected - person.id else selected + person.id
-                                )
-                            },
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Checkbox(
-                                chosen,
-                                {
-                                    onSelected(
-                                        if (it) selected + person.id else selected - person.id
-                                    )
-                                },
+    var selected by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    val conversationId = rememberSaveable { java.util.UUID.randomUUID().toString() }
+    val inviteId = rememberSaveable { java.util.UUID.randomUUID().toString() }
+    var link by rememberSaveable { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    var loadingPeople by remember { mutableStateOf(true) }
+    var copied by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        vm.loadContacts {
+            people = it
+            loadingPeople = false
+        }
+    }
+    fun start(action: String) {
+        if (busy) return
+        busy = true
+        vm.run {
+            try {
+                val url = vm.startConversation(conversationId, selected, inviteId, action == "open")
+                link = url
+                when (action) {
+                    "copy" -> {
+                        (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                                as android.content.ClipboardManager)
+                            .setPrimaryClip(
+                                android.content.ClipData.newPlainText("Genoa invitation", url)
                             )
-                            Avatar(person.name, identity = person.id, size = 32.dp)
-                            Text(person.name, style = MaterialTheme.typography.titleMedium)
-                        }
+                        copied = true
                     }
-                } else {
-                    Text("Give this conversation a name.")
-                    OutlinedTextField(
-                        name,
-                        onName,
-                        label = { Text("Conversation name") },
-                        singleLine = true,
-                    )
+                    "share" ->
+                        context.startActivity(
+                            android.content.Intent.createChooser(
+                                android.content
+                                    .Intent(android.content.Intent.ACTION_SEND)
+                                    .setType("text/plain")
+                                    .putExtra(
+                                        android.content.Intent.EXTRA_TEXT,
+                                        "Join me on Genoa: $url",
+                                    ),
+                                "Invite to Genoa",
+                            )
+                        )
+                    else -> onClose()
+                }
+            } finally {
+                busy = false
+            }
+        }
+    }
+    ModalBottomSheet(
+        onDismissRequest = { if (!busy) onClose() },
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            Modifier.fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text("Start a conversation", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Choose your people, or send a link. You can name it later.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    { start("copy") },
+                    enabled = !busy,
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                ) {
+                    Text(if (copied) "Link copied" else "Copy invite link")
+                }
+                OutlinedButton(
+                    { start("share") },
+                    enabled = !busy,
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                ) {
+                    Text("Share link")
                 }
             }
-        },
-        confirmButton = {
-            if (step == 0)
-                TextButton({
-                    if (name.isBlank())
-                        onName(people.filter { it.id in selected }.joinToString { it.name })
-                    onStep(1)
-                }) {
-                    Text("Continue")
+            Text("Your contacts", style = MaterialTheme.typography.titleMedium)
+            if (loadingPeople) LinearProgressIndicator(Modifier.fillMaxWidth())
+            else if (people.isEmpty())
+                Text(
+                    "People you talk with will appear here. Share a link to invite someone new.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            LazyColumn(Modifier.weight(1f, fill = false).heightIn(max = 320.dp)) {
+                items(people, key = { it.id }) { person ->
+                    val chosen = person.id in selected
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(
+                            enabled = !busy && link == null
+                        ) {
+                            selected = if (chosen) selected - person.id else selected + person.id
+                        },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Avatar(person.name, identity = person.id, size = 40.dp)
+                        Text(
+                            person.name,
+                            Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Checkbox(chosen, onCheckedChange = null)
+                    }
                 }
-            else TextButton(onCreate, enabled = name.isNotBlank()) { Text("Create") }
-        },
-        dismissButton = {
-            if (step == 0) TextButton(onClose) { Text("Cancel") }
-            else TextButton({ onStep(0) }) { Text("Back") }
-        },
-    )
+            }
+            if (link != null)
+                Text(
+                    "Your conversation is ready. The invitation link works for 7 days.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            Button(
+                { start("open") },
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+            ) {
+                Text(
+                    if (busy) "Preparing…"
+                    else if (link != null) "Open conversation"
+                    else if (selected.isEmpty()) "Start conversation"
+                    else
+                        "Start with ${selected.size} ${if (selected.size == 1) "person" else "people"}"
+                )
+            }
+        }
+    }
 }
 
 @Composable

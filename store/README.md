@@ -1,51 +1,75 @@
-# Genoa release handoff
+# Releases and store assets
 
-Selected distribution: **Google Play + App Store/TestFlight**. The primary deliverables are a signed Play AAB and an App Store Connect IPA. The APK is a supplemental artifact.
+Build outputs always go under `dist/`, which is ignored by Git. Keep one current build per platform and variant. Store published historical binaries with release attachments outside the source tree, together with their matching symbols and checksums.
 
-Both platforms use **`app.genoa`**. The assembled handoff is in `artifacts/deployment/package/`; the downloadable archive is `artifacts/deployment/genoa-release-handoff.zip`. Icons, listing artwork, and 12 native screenshots are supplied. **The Android AAB/APK and App Store Connect IPA are signed and verified.** See `verification.json` for signing and validation evidence. No store upload or submission has been performed.
+## Output locations
 
-## Included files
-
-| Destination | Handoff file/folder |
+| File | Purpose |
 |---|---|
-| Google Play upload | `android/genoa-0.2.8-build12.aab` |
-| Supplemental Android package | `android/genoa-0.2.8-build12.apk` |
-| Android crash deobfuscation | `android/mapping-0.2.8-build12.txt` |
-| App Store / TestFlight upload | `ios/Genoa-0.1.0-build1.ipa` |
-| iOS matching crash symbols | `ios/Genoa-0.1.0-build1-dSYMs.zip` |
-| Play app icon / feature graphic | `store/google-play/icon-512.png`, `feature-1024x500.png` |
-| Play phone screenshots | `store/google-play/phone/` — four 1080×1920 native captures |
-| App Store icon | `store/app-store/icon-1024.png` (also compiled into the app) |
-| iPhone 6.9-inch screenshots | `store/app-store/iphone/` — four 1320×2868 native captures |
-| iPad 13-inch screenshots | `store/app-store/ipad/` — four 2064×2752 native captures |
-| Platform icon sources | `platform-icons/` — Android adaptive/round/monochrome/notification, iOS default/dark/tinted and interface catalog |
-| Logo, web and social artwork | `brand/` — outlined SVGs, transparent PNGs, favicons, social images and font license |
-| Listing copy and review notes | `store/en-US/` |
-| Privacy form starting point | `store/privacy-data-worksheet.md` |
-| File integrity and inspection | `asset-manifest.json`, `SHA256SUMS.txt`, `verification.json`, `preview.html` |
+| `dist/android/Genoa.apk` | Signed Android installation |
+| `dist/android/Genoa.aab` | Signed Google Play bundle |
+| `dist/android/mapping.txt` | Matching R8 crash mapping |
+| `dist/android/Genoa-debug.apk` | Development build |
+| `dist/android/Genoa-unsigned.apk`, `Genoa-unsigned.aab` | Explicitly unsigned build |
+| `dist/android/mapping-unsigned.txt` | Matching unsigned-build mapping |
+| `dist/android/build*.json` | Version, application ID, variant, and filenames |
+| `dist/ios/Genoa.ipa` | Signed App Store Connect export |
+| `dist/ios/Genoa.xcarchive` | Signed archive with matching symbols |
+| `dist/ios/Genoa-dSYMs.zip` | iOS crash symbols |
+| `dist/ios/Genoa-unsigned.xcarchive` | Explicitly unsigned device archive |
+| `dist/store/` | Store artwork, screenshots, and listing copy |
 
-Screenshots are real native app captures of fictional local accounts and an AI-generated demo photo. They are not generated UI or customer data. Default display mode is light. The capture tools only connect to the dedicated loopback Worker. PNGs preserve original pixels/dimensions; a redundant opaque alpha channel is removed for store upload. Optional videos and Android tablet promotional screenshots are not required for this phone listing and are not supplied.
+Signed Android and iOS output directories contain `SHA256SUMS.txt`. Run `shasum -a 256 -c SHA256SUMS.txt` from the corresponding directory to verify local integrity. Checksums do not establish store acceptance or device reliability. Current versions and last verified delivery status are in [FEATURES.md](../docs/FEATURES.md).
 
-## Signing and repeatable builds
+## Android
 
-Android uses `app.genoa`, version 0.2.8 (12), with a new Firebase Android registration in the existing `gather-video-20260916` project. A new RSA-4096 upload key was created with the owner's authorization for this first Play release. Its public certificate is `android/genoa-upload-certificate.pem`. Private signing material is stored separately at `artifacts/private-signing/android/` with owner-only permissions and excluded from Git and this handoff. Back up the keystore and credentials together in secure storage. Enroll in Play App Signing and retain this upload key for subsequent releases.
+Set `JAVA_HOME` to a compatible JDK (Android Studio's bundled JBR works) and `ANDROID_HOME` to your SDK. From the repo root:
 
-The earlier `app.gather` beta remains a separate installation. Local drafts and sessions do not migrate automatically, so handle unsent drafts there before removing it. Server accounts remain available in the new app. A supplemental APK signed with the upload key cannot update a Play-installed app when Play uses a different app-signing key.
+```sh
+./scripts/release/android.sh --debug
+./scripts/release/android.sh --unsigned
+```
 
-Set `JAVA_HOME` to Android Studio's bundled JBR and `ANDROID_HOME` to the Android SDK. Load `GENOA_KEYSTORE`, `GENOA_KEY_ALIAS`, `GENOA_KEYSTORE_PASSWORD` and `GENOA_KEY_PASSWORD` from the private credentials file into the build process environment; never paste passwords into command history or Git. Run `scripts/release/android.sh`. It refuses incomplete credentials; `--unsigned` explicitly creates unsigned artifacts. Validate the APK with `apksigner verify --verbose --print-certs`; retain the AAB and matching mapping file together.
+For a signed release, set all four environment variables from secure storage: `GENOA_KEYSTORE` (absolute path), `GENOA_KEYSTORE_PASSWORD`, `GENOA_KEY_ALIAS`, and `GENOA_KEY_PASSWORD`. Then run:
 
-iOS uses `app.genoa`, version 0.1.0 (1), and the authorized **Whatado, LLC team `DCWP7J7692`**. Its bundle ID and push-enabled development and App Store profiles were registered successfully. Set `GENOA_APPLE_TEAM=DCWP7J7692` and run `scripts/release/ios.sh --cloud-sign` to archive and export for App Store Connect locally. The verified cloud-signing path compiles an archive, preserves production push entitlements in an ad-hoc signature, then exports an Apple Distribution-signed IPA through Xcode's automatic cloud signing. It requires an authorized Xcode account with cloud distribution-signing access. The archive is an export source, not the upload artifact; upload the signed IPA. Omitting `--cloud-sign` uses local development signing for the archive and may require an unlocked login Keychain. No store upload or submission is performed by this script. The exported app must have production APNs entitlement; backend `APNS_CREDENTIALS.bundle_id` must be `app.genoa`.
+```sh
+./scripts/release/android.sh
+```
 
-The final IPA passed strict code-signature verification, has `DCWP7J7692.app.genoa` as its application identifier, `aps-environment=production`, and `get-task-allow=false`. Its App Store profile expires March 2, 2027. The exported binary and supplied dSYMs have matching UUIDs. Cloud-managed distribution signing resolved the initial login Keychain blocker; no Keychain password or access-control changes were required. Private signing keys are excluded from the handoff; the IPA includes its normal embedded provisioning profile.
+The script builds, runs unit tests and lint, then copies outputs to `dist/android/`. Failed checks do not publish a new copy. Debug and unsigned variants cannot overwrite the signed files. Verify release signatures with Android SDK `apksigner` and `jarsigner`; retain the mapping that was built with each AAB.
 
-## Reproduce the asset checks
+The maintainer's existing upload key and credential file are in ignored, owner-only `.local/signing/android/`. They are not included in clones or packages. Back them up securely and reuse the same key for updates. The credential file contains environment values; load it directly into the build process without printing it. A distributed fork needs its own signing identity and Firebase configuration. Do not regenerate the existing key during cleanup.
 
-`python3 assets/brand/genoa/source/verify.py` validates the existing brand exports. `python3 scripts/release/ios-icons.py` rebuilds iOS appearance icons from the existing vector master using Pillow and `rsvg-convert`. `python3 scripts/release/package-assets.py` assembles the reviewed captures, validates their sizes/opacity and copy limits, and generates checksums. Rebuild the iOS archive after changing its icon catalog. Do not edit screenshots to hide errors; recapture the actual app.
+The store application ID is `app.genoa`. The earlier `app.gather` beta is a separate installation; local drafts do not migrate automatically. An upload-key-signed APK may not update a Play-installed app if Play uses a different app-signing key.
 
-For fresh screenshots, start `ios/scripts/test-server.sh`, run `scripts/release/seed-screenshots.py` once, then explicitly run `StoreScreenshotTests` with `TEST_RUNNER_GENOA_STORE_SCREENSHOTS=1` on isolated iPhone/iPad simulators. Android's `StoreScreenshotTest` requires the `storeScreenshots=1` instrumentation argument and an emulator reverse port for 18888. It is skipped in ordinary test runs. Android capture outputs go to the app's external `store-screenshots` directory; pull them before uninstalling. Export iOS attachments with `xcresulttool export attachments`. The packaging script expects the reviewed captures under `artifacts/deployment/logs/`.
+## iOS
 
-## Store-account information still needed
+With an authorized Xcode account and `GENOA_APPLE_TEAM` set to your developer team:
 
-Complete the reviewer account/contact, support URL/email, published privacy policy, external account-deletion request URL, age/target-audience/content declarations, and operational privacy answers before submission. See the supplied reviewer notes and privacy worksheet. Backend APNs credentials and physical-device camera/live/background/notification/accessibility verification remain open. The existing `docs/PRODUCTION-READINESS.md` findings are not resolved by release builds or artwork.
+```sh
+./scripts/release/ios.sh --cloud-sign
+```
 
-Asset specifications checked September 21, 2026: [Apple screenshots](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications), [Apple icon catalogs](https://developer.apple.com/documentation/xcode/configuring-your-app-icon), [Google Play preview assets](https://support.google.com/googleplay/android-developer/answer/9866151?hl=en). The archive uses Xcode 26.0.1 / iOS 26 SDK, meeting the currently published [SDK minimum](https://developer.apple.com/news/upcoming-requirements/). Store validation still requires a signed upload.
+This builds and exports with Xcode cloud-managed distribution signing. Omitting `--cloud-sign` uses local signing and may require an unlocked login Keychain. `--unsigned` builds an archive without Apple credentials; it cannot be uploaded. The scripts export locally and do not submit to a store.
+
+Signed export checks verify `app.genoa`, the selected team, production push entitlement, distribution profile, signature, and matching dSYM UUIDs. Backend `APNS_CREDENTIALS.bundle_id` must match the app. See [iOS setup](../ios/README.md).
+
+## Store content
+
+- `en-US/`: listing copy, release notes, and reviewer instructions.
+- `screenshots/android/`, `screenshots/iphone/`, `screenshots/ipad/`: four reviewed native screenshots per platform, captured September 21, 2026. These predate the latest onboarding update; review and recapture affected screens before submission.
+- `demo/`: generated photo and provenance used by synthetic capture accounts.
+- `privacy-data-worksheet.md`: implementation-based starting point for store declarations.
+- `assets/brand/genoa/` at the repo root: canonical brand artwork and font license.
+
+Install Pillow, then assemble store assets:
+
+```sh
+python3 scripts/release/package-assets.py
+```
+
+The command validates screenshot dimensions/opacity and listing lengths, then replaces `dist/store/` with a fresh package and checksums. It never includes app binaries, private keys, or local backups. Brand export verification is `python3 assets/brand/genoa/source/verify.py` (requires its Python requirements and `rsvg-convert`). Rebuild iOS appearance icons with `python3 scripts/release/ios-icons.py` and recompile after changing icons.
+
+For new screenshots, start `./ios/scripts/test-server.sh` and run `python3 scripts/release/seed-screenshots.py`. Use isolated simulators/emulators. iOS `StoreScreenshotTests` opt in with `TEST_RUNNER_GENOA_STORE_SCREENSHOTS=1`; export attachments using `xcresulttool export attachments`. Android `StoreScreenshotTest` opts in with `storeScreenshots=1` and needs `adb -s emulator-5554 reverse tcp:18888 tcp:18888`. Pull images from the app's external `store-screenshots` directory before uninstalling. Review captures and replace the corresponding named PNGs in `store/screenshots/`; never edit screenshots to conceal errors.
+
+Complete reviewer contact/account, support/privacy/deletion URLs, content/age declarations, push configuration, and [device/reliability gates](../docs/PRODUCTION-READINESS.md) before public release.

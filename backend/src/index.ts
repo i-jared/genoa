@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { auth } from "./auth";
+import { mobileAuth } from "./mobile-auth";
 import { body, fail, membership, rateLimit, eventStatement } from "./access";
 import { conversations } from "./conversations";
 import { messages } from "./messages";
@@ -31,20 +32,33 @@ app.onError((error, c) => {
   );
   return c.json({ error: "Something went wrong. Please try again." }, 500);
 });
+app.get("/join/:token", async (c) => {
+  const token = z.string().uuid().safeParse(c.req.param("token"));
+  if (!token.success) fail(404, "Invitation unavailable");
+  const invite = await c.env.DB.prepare(
+    "SELECT token FROM invites WHERE token=? AND expires_at>?",
+  )
+    .bind(token.data, Date.now())
+    .first();
+  if (!invite) fail(404, "This invitation has expired. Ask for a new link.");
+  c.header("Cache-Control", "no-store");
+  c.header("Referrer-Policy", "no-referrer");
+  c.header(
+    "Content-Security-Policy",
+    "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'",
+  );
+  return c.html(
+    `<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Join Genoa</title><style>body{background:#f5f3ee;color:#252925;font:18px/1.6 system-ui;margin:0;padding:48px 24px}main{max-width:420px;margin:10vh auto}h1{font:38px Georgia}a{display:block;background:#206f60;color:white;padding:16px;border-radius:16px;text-align:center;text-decoration:none}code{overflow-wrap:anywhere;font-size:14px}</style><main><h1>A conversation is waiting.</h1><p>Open Genoa to join. You can sign in or create an account first.</p><a href="genoa://join/${token.data}">Open Genoa</a><p>If the app doesn’t open, install Genoa, then choose “Join with invitation” and paste this link:</p><code>${c.env.APP_URL}/join/${token.data}</code></main></html>`,
+  );
+});
 app.get("/health", (c) => c.json({ ok: true }));
+app.route("/auth/mobile", mobileAuth);
 app.on(["POST", "GET"], "/auth/*", async (c) => {
   await rateLimit(
     c.env,
     `auth:${c.req.header("cf-connecting-ip") ?? "local"}`,
     20,
   );
-  if (c.req.path === "/auth/sign-up/email" && c.req.method === "POST") {
-    if (
-      !c.env.BETA_INVITE_CODE ||
-      c.req.header("X-Invite-Code") !== c.env.BETA_INVITE_CODE
-    )
-      fail(403, "Enter a valid beta invitation code");
-  }
   return auth(c.env).handler(c.req.raw);
 });
 app.use("/api/*", async (c, next) => {

@@ -334,7 +334,7 @@ fun ConversationSheets(
     var forwardTarget by remember { mutableStateOf<Conversation?>(null) }
     if (dialog == "members") GroupDialog(vm, state) { onDialog("") }
     if (dialog == "note")
-        AlertDialog(
+        GenoaDialog(
             onDismissRequest = { onDialog("") },
             title = { Text("Private note") },
             text = {
@@ -360,7 +360,7 @@ fun ConversationSheets(
         )
     previewDraft?.let { DraftPreview(it) { onPreviewDraft(null) } }
     discardDraft?.let { draft ->
-        AlertDialog(
+        GenoaDialog(
             onDismissRequest = { onDiscardDraft(null) },
             title = { Text("Discard this draft?") },
             text = { Text("This removes the recording from your phone and cancels sending.") },
@@ -432,7 +432,7 @@ fun ConversationSheets(
                 }
             }
         if (dialog == "delete")
-            AlertDialog(
+            GenoaDialog(
                 onDismissRequest = { onDialog("") },
                 title = { Text("Delete this message?") },
                 text = {
@@ -451,7 +451,7 @@ fun ConversationSheets(
                 dismissButton = { TextButton({ onDialog("") }) { Text("Keep message") } },
             )
         if (dialog == "forward")
-            AlertDialog(
+            GenoaDialog(
                 onDismissRequest = { onDialog("") },
                 title = { Text("Forward a copy") },
                 text = {
@@ -472,7 +472,7 @@ fun ConversationSheets(
                 confirmButton = { TextButton({ onDialog("") }) { Text("Cancel") } },
             )
         if (dialog == "confirmForward" && forwardTarget != null)
-            AlertDialog(
+            GenoaDialog(
                 onDismissRequest = { onDialog("") },
                 title = { Text("Forward to ${forwardTarget!!.title}?") },
                 text = { Text("This creates a separate copy for everyone in that conversation.") },
@@ -487,7 +487,7 @@ fun ConversationSheets(
                 dismissButton = { TextButton({ onDialog("forward") }) { Text("Back") } },
             )
         if (dialog == "reminder")
-            AlertDialog(
+            GenoaDialog(
                 onDismissRequest = { onDialog("") },
                 title = { Text("Remind me to reply") },
                 text = {
@@ -510,7 +510,7 @@ fun ConversationSheets(
                 confirmButton = { TextButton({ onDialog("") }) { Text("Cancel") } },
             )
         if (dialog == "report")
-            AlertDialog(
+            GenoaDialog(
                 onDismissRequest = { onDialog("") },
                 title = { Text("Report or block") },
                 text = {

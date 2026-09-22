@@ -37,32 +37,87 @@ class SessionStore(context: Context) {
     }
 
     var token: String?
-        get() = synchronized(this) {
-            val ciphertext = prefs.getString("token", null)
-            // Recheck persisted identity so another SessionStore's rotation/logout invalidates this cache.
-            if (ciphertext != cachedCiphertext) {
-                cachedToken = ciphertext?.let { value ->
-                    runCatching {
+        get() =
+            synchronized(this) {
+                val ciphertext = prefs.getString("token", null)
+                // Recheck persisted identity so another SessionStore's rotation/logout invalidates
+                // this cache.
+                if (ciphertext != cachedCiphertext) {
+                    cachedToken =
+                        ciphertext?.let { value ->
+                            runCatching {
+                                    val bytes = Base64.decode(value, Base64.NO_WRAP)
+                                    Cipher.getInstance("AES/GCM/NoPadding").run {
+                                        init(
+                                            Cipher.DECRYPT_MODE,
+                                            key(),
+                                            GCMParameterSpec(128, bytes.copyOfRange(0, 12)),
+                                        )
+                                        String(doFinal(bytes.copyOfRange(12, bytes.size)))
+                                    }
+                                }
+                                .getOrNull()
+                        }
+                    // A temporary Keystore failure must be retryable on the next read.
+                    cachedCiphertext = if (cachedToken != null) ciphertext else null
+                }
+                cachedToken
+            }
+        set(value) =
+            synchronized(this) {
+                val ciphertext =
+                    value?.let {
+                        val cipher =
+                            Cipher.getInstance("AES/GCM/NoPadding").apply {
+                                init(Cipher.ENCRYPT_MODE, key())
+                            }
+                        Base64.encodeToString(
+                            cipher.iv + cipher.doFinal(it.toByteArray()),
+                            Base64.NO_WRAP,
+                        )
+                    }
+                prefs.edit().putString("token", ciphertext).apply()
+                cachedCiphertext = ciphertext
+                cachedToken = value
+            }
+
+    var pendingInvite: String?
+        get() = prefs.getString("pending_invite", null)
+        set(value) {
+            prefs.edit().putString("pending_invite", value).apply()
+        }
+
+    var pendingLogin: String?
+        get() =
+            prefs.getString("oauth", null)?.let { value ->
+                runCatching {
                         val bytes = Base64.decode(value, Base64.NO_WRAP)
                         Cipher.getInstance("AES/GCM/NoPadding").run {
-                            init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, bytes.copyOfRange(0, 12)))
+                            init(
+                                Cipher.DECRYPT_MODE,
+                                key(),
+                                GCMParameterSpec(128, bytes.copyOfRange(0, 12)),
+                            )
                             String(doFinal(bytes.copyOfRange(12, bytes.size)))
                         }
-                    }.getOrNull()
+                    }
+                    .getOrNull()
+            }
+        set(value) {
+            val encrypted =
+                value?.let {
+                    val cipher =
+                        Cipher.getInstance("AES/GCM/NoPadding").apply {
+                            init(Cipher.ENCRYPT_MODE, key())
+                        }
+                    Base64.encodeToString(
+                        cipher.iv + cipher.doFinal(it.toByteArray()),
+                        Base64.NO_WRAP,
+                    )
                 }
-                // A temporary Keystore failure must be retryable on the next read.
-                cachedCiphertext = if (cachedToken != null) ciphertext else null
+            check(prefs.edit().putString("oauth", encrypted).commit()) {
+                "Could not save sign-in. Try again."
             }
-            cachedToken
-        }
-        set(value) = synchronized(this) {
-            val ciphertext = value?.let {
-                val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
-                Base64.encodeToString(cipher.iv + cipher.doFinal(it.toByteArray()), Base64.NO_WRAP)
-            }
-            prefs.edit().putString("token", ciphertext).apply()
-            cachedCiphertext = ciphertext
-            cachedToken = value
         }
 
     var userId: String

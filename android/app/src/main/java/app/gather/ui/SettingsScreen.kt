@@ -148,7 +148,7 @@ fun SettingsScreen(vm: GenoaViewModel, state: AppState, onBack: () -> Unit) {
         }
     }
     if (signingOut)
-        AlertDialog(
+        GenoaDialog(
             onDismissRequest = { signingOut = false },
             title = { Text("Sign out with saved drafts?") },
             text = {

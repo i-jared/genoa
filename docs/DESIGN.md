@@ -1,6 +1,6 @@
 # Genoa product design specification
 
-[Open the visual guideline sample webpage](https://genoa-design-guide.i-jared.chatgpt.site). Source: `design-guide/dist/`. The samples illustrate this specification; they do not record or send messages.
+[Open the visual guideline sample webpage](https://genoa-design-guide.i-jared.chatgpt.site). Source: [docs/design/guide/](design/guide/index.html). The samples illustrate this specification; they do not record or send messages.
 
 
 **Version:** 1.1 · **Date:** September 16, 2026  
@@ -16,13 +16,13 @@ The central experience is **find a conversation → watch a message → record a
 
 This specification translates the supplied four-screen reference into an implementable Android design. It covers the everyday surfaces, supporting flows, accessibility, error recovery, and component behavior. Measurements and colors below are proposed design values inspired by the reference; they are not extracted source-design tokens.
 
-Use this document with [engineering and interaction rules](../AGENTS.md), [the architecture](ARCHITECTURE.md), and [verified feature status](FEATURES.md). The [original plan](../PLAN.md) supplies product context; its Expo recommendation has been superseded. FEATURES.md remains the source of truth for what is implemented and verified.
+Use this document with [engineering and interaction rules](../AGENTS.md), [the architecture](ARCHITECTURE.md), and [verified feature status](FEATURES.md). The [product plan](../PLAN.md) supplies scope and priorities. FEATURES.md remains the source of truth for what is implemented and verified.
 
 ### Custom icons
 
 The [Genoa identity kit](../assets/brand/genoa/README.md) defines the production logo: a filled G/conversation mark with a Newsreader serif wordmark in the existing teal and ivory palette. SVG masters, transparent PNGs, Android adaptive/themed/notification resources, web icons, store graphics, and usage rules live in `assets/brand/genoa/`. Use the supplied paths for brand artwork; keep normal scalable text for page titles. The filled logo is distinct from the outlined interface icon family below.
 
-The visual guide uses the custom Genoa SVG set in `design-guide/dist/icons/`, with a reusable symbol sheet at `design-guide/dist/icons.svg`. Use a 24-unit grid, 1.7-unit strokes, rounded ends and joins, and consistent optical weight. Home uses a rounded roof and doorway; Record uses a compact video camera; Profile uses a head and open shoulder outline. Navigation icons render at 32 dp, control icons at 20–24 dp, and touch targets remain at least 48 dp. Use teal and a soft selection background for the active destination; keep capture coral. Icons inherit their control color and have accessible names when no visible label is present. Avoid Unicode or emoji substitutes for interface icons.
+The visual guide uses the custom Genoa SVG set in `docs/design/guide/icons/`, with a reusable symbol sheet at `docs/design/guide/icons.svg`. Use a 24-unit grid, 1.7-unit strokes, rounded ends and joins, and consistent optical weight. Home uses a rounded roof and doorway; Record uses a compact video camera; Profile uses a head and open shoulder outline. Navigation icons render at 32 dp, control icons at 20–24 dp, and touch targets remain at least 48 dp. Use teal and a soft selection background for the active destination; keep capture coral. Icons inherit their control color and have accessible names when no visible label is present. Avoid Unicode or emoji substitutes for interface icons.
 
 ### Presentation and density
 
@@ -494,3 +494,11 @@ Run relevant Android builds and lint, backend checks for any changed contract, a
 The proposed baseline is light and warm with system dark support, serif display headings, ordinary message terminology, tap-based capture, explicit Send, and a profile without engagement statistics. The screenshot’s hold-to-send interaction, undefined filters, online dots, and handles are not part of the baseline.
 
 The custom logo and outlined brand lettering are defined in the Genoa identity kit. Later product choices include manual appearance selection, richer group receipts, named presence, full-history search, camera effects, and a public website experience. Each needs its own behavior and implementation decision before entering the UI. None should block the core visual redesign.
+
+## Onboarding and recording follow-up — September 22, 2026
+
+This update supersedes the earlier beta-code and required-conversation-name flows. Signup uses email and a minimum six-character password, with an optional name. Configured Google/Apple providers appear above email entry; unavailable providers have no dead buttons.
+
+Starting a conversation opens contacts and Copy invite link / Share link immediately. Creation needs no name; unnamed conversations display the other participants and can be renamed in details. Invitations use an HTTPS landing page with an Open Genoa action and retain the custom-scheme app handoff.
+
+Finishing/sending a recording keeps the camera ready. Automatic playback selects only incoming, playable, unfinished messages; previously watched and outgoing messages require deliberate selection. Partial messages resume at their saved position. A new incoming message may take the user back to watching after recording. Android confirmation/form dialogs use compact headings, warm surfaces, rounded corners and stable trailing actions; conversation creation uses a bottom sheet.

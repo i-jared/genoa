@@ -92,9 +92,11 @@ class WatchTest {
         assertEquals(emptyList<String>(), timedReactionsDue(reactions, 6_600).map { it.emoji })
     }
 
-    @Test fun refreshedWindowRemovesDeletedMessagesWithoutDroppingOlderPages() {
+    @Test
+    fun refreshedWindowRemovesDeletedMessagesWithoutDroppingOlderPages() {
         val messages = (1..80).map { message(it.toString()).copy(seq = it.toLong()) }
-        val refreshed = messages.filter { it.seq in 30..60 && it.seq != 42L }.map { it.copy(watched = true) }
+        val refreshed =
+            messages.filter { it.seq in 30..60 && it.seq != 42L }.map { it.copy(watched = true) }
         val merged = mergeWatchPage(messages, WatchPage(refreshed, null, true, true, 30, 60))
         assertEquals(79, merged.size)
         assertEquals("1", merged.first().id)
@@ -103,13 +105,35 @@ class WatchTest {
         assertEquals(true, merged.first { it.id == "40" }.watched)
     }
 
-    @Test fun olderPagesMergeWithoutDuplicatesOrMovingTheFocusedMessage() {
+    @Test
+    fun olderPagesMergeWithoutDuplicatesOrMovingTheFocusedMessage() {
         val messages = (51..80).map { message(it.toString()).copy(seq = it.toLong()) }
         val older = (1..50).map { message(it.toString()).copy(seq = it.toLong()) }
         val page = WatchPage(older, null, false, true, 1, 50)
         val merged = mergeWatchPage(mergeWatchPage(messages, page), page)
         assertEquals((1..80).map { it.toLong() }, merged.map { it.seq })
         assertEquals("80", merged.find { it.id == "80" }?.id)
+    }
+
+    @Test
+    fun returningFromRecordingSkipsWatchedAndOwnMessages() {
+        val previous = message("previous", watched = true)
+        val own = message("just-recorded", author = "me")
+        assertNull(nextIncomingMessage(listOf(previous, own), "me"))
+        val arriving = message("arrived-while-recording")
+        assertEquals(arriving, nextIncomingMessage(listOf(previous, own, arriving), "me"))
+        assertEquals(
+            arriving,
+            nextIncomingMessage(listOf(previous, own, arriving), "me", "previous"),
+        )
+    }
+
+    @Test
+    fun partiallyWatchedIncomingIsNotSkippedAndFailedOutgoingNeverAutoPlays() {
+        val partial = message("partial").copy(positionMs = 500)
+        val failed = message("failed", author = "me").copy(state = "failed")
+        assertEquals(partial, nextIncomingMessage(listOf(failed, partial), "me"))
+        assertNull(nextIncomingMessage(listOf(partial.copy(watched = true), failed), "me"))
     }
 
     private fun message(

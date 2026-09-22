@@ -86,11 +86,15 @@ struct WatchScreen: View {
       watch.configure(conversation: conversation.id, api: api, store: store)
       let target =
         model.pendingTarget?.conversation == conversation.id ? model.pendingTarget?.message : nil
-      await watch.load(target: target)
-      if target != nil { model.pendingTarget = nil }
+      if let target {
+        await watch.load(target: target)
+        model.pendingTarget = nil
+        if let message = watch.current { select(message) }
+      } else if let incoming = await watch.afterRecording(userId: model.person?.id) {
+        select(incoming)
+      }
       watch.connect()
       model.playback.onEnd = { Task { await advance() } }
-      if let m = watch.current { select(m) }
       while !Task.isCancelled {
         try? await Task.sleep(for: .seconds(5))
         if phase == .active && !model.isCapturing {
@@ -154,7 +158,9 @@ struct WatchScreen: View {
       onDismiss: {
         Task {
           await model.reloadLocal()
-          await watch.load()
+          if let next = await watch.afterRecording(userId: model.person?.id) {
+            select(next, autoplay: true)
+          }
         }
       }
     ) { RecorderScreen(destination: $0) }
@@ -299,6 +305,7 @@ struct WatchScreen: View {
   func openCapture(live: Bool, kind: String = "video") {
     stopDwell()
     model.playback.stop()
+    watch.finished = true
     capture = CaptureDestination(
       conversation: conversation, kind: kind, live: live, reply: watch.current?.id, immediate: live)
   }
@@ -310,7 +317,7 @@ struct WatchScreen: View {
     photoReady = false
     watchedStill = false
     autoplayPhoto = autoplay
-    model.playback.select(m, autoplay: autoplay)
+    model.playback.select(m, autoplay: autoplay, resume: true)
     if autoplay && m.kind == "text" { startDwell(m) }
   }
   func startDwell(_ m: Message) {
@@ -339,7 +346,7 @@ struct WatchScreen: View {
     stillPlaying = false
   }
   func advance() async {
-    if let next = await watch.advance() {
+    if let next = await watch.advance(userId: model.person?.id) {
       select(next, autoplay: true)
     } else {
       model.playback.pause()

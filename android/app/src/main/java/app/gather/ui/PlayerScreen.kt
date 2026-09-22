@@ -147,7 +147,9 @@ fun PlayerScreen(
             }
         }
     }
-    val chrome = watchChrome(queue, current?.id, itemFinished)
+    val chrome =
+        if (state.replyMode || itemFinished) WatchChrome.REPLY
+        else watchChrome(queue, current?.id, false)
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val inForeground = lifecycleState.isAtLeast(Lifecycle.State.STARTED)
     LaunchedEffect(conversation.id, queue.map { it.id }, focusId, state.person?.id) {
@@ -165,6 +167,7 @@ fun PlayerScreen(
         mediaDuration = current?.durationMs ?: 0
         itemFinished = false
     }
+    LaunchedEffect(itemFinished) { if (itemFinished) vm.replyMode(true) }
     LaunchedEffect(current?.id, photoLoaded, photoRetry) {
         if (current?.kind == "photo" && !photoLoaded) {
             delay(15_000)
@@ -204,7 +207,7 @@ fun PlayerScreen(
             return@LaunchedEffect
         delay(dwell)
         vm.progress(message, 0, true)
-        val next = nextWatchMessage(currentQueue, message.id)
+        val next = nextIncomingMessage(currentQueue, vm.repo.session.userId, message.id)
         if (next != null) onFocus(next.id) else if (!latestHasNewer) itemFinished = true
     }
     LaunchedEffect(controller, current?.id) {
@@ -252,7 +255,7 @@ fun PlayerScreen(
                         controller?.playbackState != Player.STATE_ENDED
                 )
                     continue
-                val next = nextWatchMessage(currentQueue, message.id)
+                val next = nextIncomingMessage(currentQueue, vm.repo.session.userId, message.id)
                 if (next != null) {
                     advanced = true
                     onFocus(next.id)
@@ -278,12 +281,15 @@ fun PlayerScreen(
         future.addListener(
             {
                 if (!disposed) {
-                    runCatching { future.get() }.onSuccess {
-                        controller = it
-                        speed = it.playbackParameters.speed
-                    }.onFailure {
-                        playbackError = "Couldn't connect to playback. Reopen this conversation to retry."
-                    }
+                    runCatching { future.get() }
+                        .onSuccess {
+                            controller = it
+                            speed = it.playbackParameters.speed
+                        }
+                        .onFailure {
+                            playbackError =
+                                "Couldn't connect to playback. Reopen this conversation to retry."
+                        }
                 }
             },
             ContextCompat.getMainExecutor(context),
@@ -294,17 +300,24 @@ fun PlayerScreen(
             MediaController.releaseFuture(future)
         }
     }
-    LaunchedEffect(controller, source, current?.id, playable) {
+    LaunchedEffect(controller, source, current?.id, playable, state.replyMode) {
         val activeController = controller ?: return@LaunchedEffect
         val message = currentMessage ?: return@LaunchedEffect
         val uri = source ?: return@LaunchedEffect
+        if (state.replyMode) {
+            activeController.pause()
+            return@LaunchedEffect
+        }
         if (!playable) {
             activeController.stop()
             return@LaunchedEffect
         }
         val activeItem = activeController.currentMediaItem
         if (activeItem?.mediaId != message.id) {
-            activeController.setMediaItem(playerMediaItem(message, uri, conversation.title), 0L)
+            activeController.setMediaItem(
+                playerMediaItem(message, uri, conversation.title),
+                if (message.watched) 0L else message.positionMs,
+            )
             activeController.setPlaybackSpeed(speed)
             activeController.prepare()
             activeController.play()
@@ -331,7 +344,10 @@ fun PlayerScreen(
     }
     // Connect to the playback service while the history request is still in flight.
     if (state.openingConversation) {
-        Box(Modifier.fillMaxSize().background(CameraBackdrop), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier.fillMaxSize().background(CameraBackdrop),
+            contentAlignment = Alignment.Center,
+        ) {
             MediaLoading("Loading conversation…")
         }
         return
@@ -678,6 +694,7 @@ fun PlayerScreen(
                     vm.repo.session.baseUrl,
                     vm.repo.session.token,
                     onSelect = { id ->
+                        vm.replyMode(false)
                         itemFinished = false
                         advanced = false
                         completionReported = false
@@ -695,7 +712,11 @@ fun PlayerScreen(
                     loadingOlder = state.loadingOlder,
                     loadingNewer = state.loadingNewer,
                     onLater = vm::loadNewer,
-                    loadThumbnails = !playable || chrome == WatchChrome.REPLY || (mediaState == Player.STATE_READY && (current?.kind != "video" || videoRevealed)),
+                    loadThumbnails =
+                        !playable ||
+                            chrome == WatchChrome.REPLY ||
+                            (mediaState == Player.STATE_READY &&
+                                (current?.kind != "video" || videoRevealed)),
                 )
                 if (chrome == WatchChrome.REPLY)
                     ReplyComposer(

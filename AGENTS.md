@@ -1,6 +1,6 @@
 # Engineering and product guidelines
 
-Build reliable recording, sending, and watching. Prefer clear ownership and predictable behavior over architectural machinery. Read PLAN.md and docs/FEATURES.md before changing scope. Android is now Kotlin/Compose; the original Expo recommendation is superseded for the Android implementation.
+Build reliable recording, sending, and watching. Prefer clear ownership and predictable behavior over architectural machinery. Read PLAN.md and docs/FEATURES.md before changing scope. Android uses Kotlin/Compose; iOS uses SwiftUI/AVFoundation.
 
 ## Engineering
 
@@ -20,6 +20,9 @@ Build reliable recording, sending, and watching. Prefer clear ownership and pred
 - Test authorization, retries, interrupted uploads, deletion races, and device background behavior. Tests must verify meaningful behavior rather than mirror implementation.
 - Keep changes reviewable. Run relevant builds, tests, and static checks. Never label scaffolding or an untested integration complete.
 - Add infrastructure only when the corresponding feature requires it.
+- Keep release outputs in `dist/android/`, `dist/ios/`, and `dist/store/`; use stable filenames and the release scripts. Never add task-named or version-named output folders.
+- Keep generated output and private local material out of Git. `.local/` holds signing material and backups; build cleanup must never remove it.
+- Update current documentation instead of adding dated audit reports or duplicate release handoffs.
 
 ## UI and interaction
 

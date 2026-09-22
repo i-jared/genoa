@@ -76,6 +76,7 @@ fun RecorderScreen(
     var elapsed by remember { mutableLongStateOf(0L) }
     var draft by remember { mutableStateOf<Draft?>(null) }
     var file by remember { mutableStateOf<File?>(null) }
+    var queuedNotice by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var discarding by remember { mutableStateOf(false) }
     var previewDraft by remember { mutableStateOf(false) }
@@ -128,7 +129,9 @@ fun RecorderScreen(
                                     )
                                     .build()
                             val video =
-                                VideoCapture.withOutput(recorder).apply { targetRotation = rotation }
+                                VideoCapture.withOutput(recorder).apply {
+                                    targetRotation = rotation
+                                }
                             provider.unbindAll()
                             try {
                                 provider.bindToLifecycle(lifecycle, selector, p, video)
@@ -450,6 +453,8 @@ fun RecorderScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            if (queuedNotice && draft == null)
+                Text("Message queued. Ready for another?", color = foreground)
             error?.let { Text(it, color = Color(0xFFFFB4AB)) }
             if (state.note.isNotBlank())
                 Text(
@@ -463,7 +468,11 @@ fun RecorderScreen(
                     {
                         vm.run {
                             vm.repo.enqueue(draft!!)
-                            onClose()
+                            draft = null
+                            file = null
+                            elapsed = 0L
+                            queuedNotice = true
+                            if (vm.incomingAfterRecording() != null) onClose()
                         }
                     },
                     Modifier.fillMaxWidth().heightIn(min = 52.dp),
@@ -574,7 +583,7 @@ fun RecorderScreen(
     }
     if (previewDraft && draft != null) DraftPreview(draft!!) { previewDraft = false }
     if (leaveRecording)
-        AlertDialog(
+        GenoaDialog(
             onDismissRequest = { leaveRecording = false },
             title = { Text("Stop and review?") },
             text = { Text("Your recording is private. Stop to review it before sending.") },
@@ -589,7 +598,7 @@ fun RecorderScreen(
             dismissButton = { TextButton({ leaveRecording = false }) { Text("Keep recording") } },
         )
     if (discard)
-        AlertDialog(
+        GenoaDialog(
             onDismissRequest = { discard = false },
             title = { Text("Discard this recording?") },
             text = { Text("This removes the saved recording from this phone.") },

@@ -1,3 +1,4 @@
+import { localFetch as fetch } from "./http";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -74,7 +75,7 @@ test("private messaging, retries, media range requests, and membership revocatio
   const invitation = (await (
     await request(`/api/conversations/${cid}/invite`, "POST", {}, alice.token)
   ).json()) as { token: string; url: string };
-  assert.equal(invitation.url, `genoa://join/${invitation.token}`);
+  assert.equal(invitation.url, `${base}/join/${invitation.token}`);
   assert.equal(
     (await request("/api/join", "POST", { token: invitation.token }, bob.token))
       .status,
@@ -178,8 +179,16 @@ test("private messaging, retries, media range requests, and membership revocatio
     200,
   );
   const reactedMessages = (await (
-    await request(`/api/conversations/${cid}/messages`, "GET", undefined, bob.token)
-  ).json()) as { id: string; reactions: { emoji: string; position_ms: number }[] }[];
+    await request(
+      `/api/conversations/${cid}/messages`,
+      "GET",
+      undefined,
+      bob.token,
+    )
+  ).json()) as {
+    id: string;
+    reactions: { emoji: string; position_ms: number }[];
+  }[];
   const reacted = reactedMessages.find((row) => row.id === mid)!;
   assert.deepEqual(
     reacted.reactions

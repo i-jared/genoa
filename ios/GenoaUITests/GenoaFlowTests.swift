@@ -46,6 +46,9 @@ final class GenoaFlowTests: XCTestCase {
       .firstMatch
     XCTAssertTrue(conversation.waitForExistence(timeout: 10))
     conversation.tap()
+    XCTAssertTrue(app.staticTexts["You’re all caught up"].waitForExistence(timeout: 10))
+    app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Rosa iOS, text")).firstMatch
+      .tap()
     XCTAssertTrue(app.staticTexts["Hello from the native iOS test."].waitForExistence(timeout: 10))
     attach(app, "Watch")
     app.buttons["Back"].tap()
@@ -54,6 +57,13 @@ final class GenoaFlowTests: XCTestCase {
     attach(app, "Profile")
     app.buttons["Home"].tap()
     attach(app, "Home")
+    app.buttons["New conversation or join"].tap()
+    app.buttons["New conversation"].tap()
+    XCTAssertTrue(app.buttons["Copy invite link"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.buttons["Share link"].exists)
+    XCTAssertFalse(app.textFields["Name"].exists)
+    attach(app, "Start a conversation")
+    app.buttons["Cancel"].tap()
     app.buttons["home.record"].tap()
     XCTAssertTrue(app.navigationBars["Record for…"].waitForExistence(timeout: 5))
     app.buttons["recipient.\(cid)"].tap()

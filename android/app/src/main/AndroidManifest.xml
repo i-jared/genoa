@@ -9,9 +9,10 @@
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <application android:name=".GenoaApplication" android:label="Genoa" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:theme="@style/Theme.Genoa" android:allowBackup="false" android:supportsRtl="true" android:networkSecurityConfig="@xml/network_security_config">
         <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/genoa_notification"/>
-        <activity android:name=".MainActivity" android:configChanges="orientation|screenSize|smallestScreenSize" android:exported="true" android:windowSoftInputMode="adjustResize">
+        <activity android:launchMode="singleTop" android:name=".MainActivity" android:configChanges="orientation|screenSize|smallestScreenSize" android:exported="true" android:windowSoftInputMode="adjustResize">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
             <intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="genoa" android:host="join"/></intent-filter>
+            <intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="genoa" android:host="auth"/></intent-filter>
             <!-- Previously shared invitations must keep opening after an app update. -->
             <intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="gather" android:host="join"/></intent-filter>
         </activity>

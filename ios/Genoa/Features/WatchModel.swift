@@ -82,15 +82,29 @@ final class WatchModel: ObservableObject {
     selected = message.id
     finished = false
   }
-  func advance() async -> Message? {
-    guard let i = messages.firstIndex(where: { $0.id == selected }) else { return nil }
-    if i + 1 == messages.count && hasNewer { await page(older: false) }
-    if i + 1 < messages.count {
-      selected = messages[i + 1].id
-      return messages[i + 1]
+  func advance(userId: String?) async -> Message? {
+    guard let store else { return nil }
+    messages = await store.apply(messages)
+    while true {
+      if let next = nextIncomingMessage(messages, userId: userId, after: selected) {
+        select(next)
+        return next
+      }
+      guard hasNewer, !loading else { break }
+      let count = messages.count
+      await page(older: false)
+      if messages.count == count { break }
     }
     finished = true
     return nil
+  }
+  func afterRecording(userId: String?) async -> Message? {
+    selected = nil
+    finished = true
+    await load()
+    // The server focus is the first unseen item, so include it when returning from capture.
+    selected = nil
+    return await advance(userId: userId)
   }
   func connect() {
     guard let api, let request = try? api.request("/api/conversations/\(cid)/events") else {
@@ -111,5 +125,12 @@ final class WatchModel: ObservableObject {
     events?.cancel()
     socket?.cancel(with: .goingAway, reason: nil)
     socket = nil
+  }
+}
+
+func nextIncomingMessage(_ messages: [Message], userId: String?, after: String? = nil) -> Message? {
+  let start = after.flatMap { id in messages.firstIndex { $0.id == id }.map { $0 + 1 } } ?? 0
+  return messages.dropFirst(start).first {
+    $0.authorId != userId && $0.watched == 0 && ["ready", "live"].contains($0.state)
   }
 }

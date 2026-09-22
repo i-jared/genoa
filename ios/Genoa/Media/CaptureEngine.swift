@@ -12,6 +12,9 @@ final class CaptureEngine: NSObject, ObservableObject, AVCaptureVideoDataOutputS
   @Published private(set) var elapsed: Double = 0
   @Published var error: String?
   private var videoDevice: AVCaptureDeviceInput?
+  private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+  @Published private(set) var camera: AVCaptureDevice?
+  private var live = false
   private var writer: AVAssetWriter?
   private var liveWriter: AVAssetWriter?
   private var videoInputs: [AVAssetWriterInput] = []
@@ -59,6 +62,9 @@ final class CaptureEngine: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             }
             self.session.addInput(input)
             self.videoDevice = input
+            self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(
+              device: camera, previewLayer: nil)
+            DispatchQueue.main.async { self.camera = camera }
             let output = AVCaptureVideoDataOutput()
             output.alwaysDiscardsLateVideoFrames = true
             output.setSampleBufferDelegate(self, queue: self.queue)
@@ -66,10 +72,9 @@ final class CaptureEngine: NSObject, ObservableObject, AVCaptureVideoDataOutputS
               throw APIError(status: 0, message: "Video recording is unavailable.")
             }
             self.session.addOutput(output)
-            if let connection = output.connection(with: .video),
-              connection.isVideoRotationAngleSupported(90)
-            {
-              connection.videoRotationAngle = 90
+            if let connection = output.connection(with: .video) {
+              connection.automaticallyAdjustsVideoMirroring = false
+              if connection.isVideoMirroringSupported { connection.isVideoMirrored = false }
             }
           }
           if microphone {
@@ -116,6 +121,9 @@ final class CaptureEngine: NSObject, ObservableObject, AVCaptureVideoDataOutputS
       if self.session.canAddInput(input) {
         self.session.addInput(input)
         self.videoDevice = input
+        self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(
+          device: device, previewLayer: nil)
+        DispatchQueue.main.async { self.camera = device }
       } else {
         self.session.addInput(old)
       }
@@ -123,7 +131,7 @@ final class CaptureEngine: NSObject, ObservableObject, AVCaptureVideoDataOutputS
     }
   }
   func start(
-    file: URL, live: Bool, angle: CGFloat = 90, segment: @escaping (Data, Int, Double) -> Void
+    file: URL, live: Bool, segment: @escaping (Data, Int, Double) -> Void
   ) async throws {
     try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
       queue.async {
@@ -131,12 +139,17 @@ final class CaptureEngine: NSObject, ObservableObject, AVCaptureVideoDataOutputS
           guard self.session.isRunning, self.writer == nil else {
             throw APIError(status: 0, message: "Wait for the camera to be ready.")
           }
-          let landscape = angle == 0 || angle == 180
+          self.live = live
+          // Apply the camera's physical capture angle once, to pixels. No writer transform:
+          // MP4 replay and fragmented live video then have identical upright frames.
+          let angle = self.rotationCoordinator?.videoRotationAngleForHorizonLevelCapture ?? 0
           for output in self.session.outputs {
             if let connection = output.connection(with: .video),
               connection.isVideoRotationAngleSupported(angle)
             {
               connection.videoRotationAngle = angle
+              connection.automaticallyAdjustsVideoMirroring = false
+              if connection.isVideoMirroringSupported { connection.isVideoMirrored = false }
             }
           }
           self.writer = try AVAssetWriter(
@@ -159,22 +172,6 @@ final class CaptureEngine: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             self.segmentHandler = segment
           }
           for writer in [self.writer, self.liveWriter].compactMap({ $0 }) {
-            if self.mode != "audio" {
-              let input = AVAssetWriterInput(
-                mediaType: .video,
-                outputSettings: [
-                  AVVideoCodecKey: AVVideoCodecType.h264,
-                  AVVideoWidthKey: landscape ? (live ? 1280 : 1920) : (live ? 720 : 1080),
-                  AVVideoHeightKey: landscape ? (live ? 720 : 1080) : (live ? 1280 : 1920),
-                  AVVideoCompressionPropertiesKey: [
-                    AVVideoAverageBitRateKey: 3_000_000, AVVideoMaxKeyFrameIntervalDurationKey: 2,
-                    AVVideoAllowFrameReorderingKey: false,
-                  ],
-                ])
-              input.expectsMediaDataInRealTime = true
-              writer.add(input)
-              self.videoInputs.append(input)
-            }
             let audio = AVAssetWriterInput(
               mediaType: .audio,
               outputSettings: [
@@ -207,6 +204,30 @@ final class CaptureEngine: NSObject, ObservableObject, AVCaptureVideoDataOutputS
     if start == nil {
       // Starting on video avoids a black first GOP and establishes the shared clock.
       if mode != "audio" && !(output is AVCaptureVideoDataOutput) { return }
+      if mode != "audio" {
+        guard let pixels = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        let size = encodedVideoSize(
+          width: CVPixelBufferGetWidth(pixels), height: CVPixelBufferGetHeight(pixels), live: live)
+        for w in [writer, liveWriter].compactMap({ $0 }) {
+          let input = AVAssetWriterInput(
+            mediaType: .video,
+            outputSettings: [
+              AVVideoCodecKey: AVVideoCodecType.h264,
+              AVVideoWidthKey: size.width, AVVideoHeightKey: size.height,
+              AVVideoCompressionPropertiesKey: [
+                AVVideoAverageBitRateKey: 3_000_000,
+                AVVideoMaxKeyFrameIntervalDurationKey: 2, AVVideoAllowFrameReorderingKey: false,
+              ],
+            ])
+          input.expectsMediaDataInRealTime = true
+          guard w.canAdd(input) else {
+            DispatchQueue.main.async { self.error = "This camera format could not be recorded." }
+            return
+          }
+          w.add(input)
+          videoInputs.append(input)
+        }
+      }
       start = time
       liveWriter?.initialSegmentStartTime = time
       for w in [writer, liveWriter].compactMap({ $0 }) {
@@ -275,36 +296,54 @@ final class CaptureEngine: NSObject, ObservableObject, AVCaptureVideoDataOutputS
   }
   func shutdown() { queue.async { self.session.stopRunning() } }
 }
+// Match the dimensions of the already-rotated sample, rather than guessing from UI orientation.
+func encodedVideoSize(width: Int, height: Int, live: Bool) -> (width: Int, height: Int) {
+  let scale = min(1, Double(live ? 1280 : 1920) / Double(max(2, width, height)))
+  return (max(2, Int(Double(width) * scale) / 2 * 2), max(2, Int(Double(height) * scale) / 2 * 2))
+}
 struct CameraSurface: UIViewRepresentable {
-  let engine: CaptureEngine
+  @ObservedObject var engine: CaptureEngine
   final class Surface: UIView {
     override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
     var preview: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
+    private var coordinator: AVCaptureDevice.RotationCoordinator?
+    private var observation: NSKeyValueObservation?
+    func configure(camera: AVCaptureDevice?) {
+      guard let camera else { return }
+      if coordinator?.device != camera {
+        coordinator = AVCaptureDevice.RotationCoordinator(device: camera, previewLayer: preview)
+        observation = coordinator?.observe(
+          \.videoRotationAngleForHorizonLevelPreview, options: [.initial, .new]
+        ) { [weak self] _, _ in
+          DispatchQueue.main.async { self?.orient() }
+        }
+      }
+      orient()
+    }
+    func orient() {
+      guard let coordinator, let connection = preview.connection else { return }
+      let angle = coordinator.videoRotationAngleForHorizonLevelPreview
+      if connection.isVideoRotationAngleSupported(angle) { connection.videoRotationAngle = angle }
+      connection.automaticallyAdjustsVideoMirroring = false
+      if connection.isVideoMirroringSupported {
+        connection.isVideoMirrored = coordinator.device?.position == .front
+      }
+    }
     override func layoutSubviews() {
       super.layoutSubviews()
-      let angle = cameraAngle(window?.windowScene?.interfaceOrientation)
-      if let c = preview.connection, c.isVideoRotationAngleSupported(angle) {
-        c.videoRotationAngle = angle
-      }
+      orient()
     }
   }
   func makeUIView(context: Context) -> Surface {
-    let v = Surface()
-    v.preview.session = engine.session
-    v.preview.videoGravity = .resizeAspectFill
-    return v
+    let view = Surface()
+    view.preview.session = engine.session
+    view.preview.videoGravity = .resizeAspectFill
+    view.configure(camera: engine.camera)
+    return view
   }
-  func updateUIView(_ view: Surface, context: Context) {}
+  func updateUIView(_ view: Surface, context: Context) { view.configure(camera: engine.camera) }
 }
 
-func cameraAngle(_ orientation: UIInterfaceOrientation?) -> CGFloat {
-  switch orientation {
-  case .landscapeRight: return 0
-  case .landscapeLeft: return 180
-  case .portraitUpsideDown: return 270
-  default: return 90
-  }
-}
 struct ReplyCameraPreview: View {
   @StateObject private var engine = CaptureEngine()
   var body: some View {

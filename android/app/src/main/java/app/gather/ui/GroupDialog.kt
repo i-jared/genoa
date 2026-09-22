@@ -31,7 +31,7 @@ fun GroupDialog(vm: GenoaViewModel, state: AppState, onClose: () -> Unit) {
     }
     val owner =
         members.find { it.getString("id") == state.person?.id }?.optString("role") == "owner"
-    AlertDialog(
+    GenoaDialog(
         onDismissRequest = onClose,
         title = { Text("Conversation details") },
         text = {
@@ -118,7 +118,7 @@ fun GroupDialog(vm: GenoaViewModel, state: AppState, onClose: () -> Unit) {
         confirmButton = { TextButton(onClose) { Text("Done") } },
     )
     confirm?.let { (action, person) ->
-        AlertDialog(
+        GenoaDialog(
             onDismissRequest = { confirm = null },
             title = {
                 Text(

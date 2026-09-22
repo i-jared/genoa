@@ -5,7 +5,9 @@ import { body, id, fail, membership, knownContact } from "./access";
 export const conversations = new Hono<AppEnv>();
 conversations.get("/", async (c) => {
   const result = await c.env.DB.prepare(
-    `SELECT c.*, cm.muted, cm.favorite,
+    `SELECT c.id,c.creator_id,c.created_at,
+    COALESCE(NULLIF(c.title,''),(SELECT group_concat(name, ', ') FROM (SELECT u.name FROM members peers JOIN user u ON u.id=peers.user_id WHERE peers.conversation_id=c.id AND peers.user_id!=cm.user_id ORDER BY peers.joined_at,u.id LIMIT 3)), 'New conversation') title,
+    cm.muted, cm.favorite,
     (SELECT count(*) FROM members WHERE conversation_id=c.id) member_count,
     (SELECT count(*) FROM messages m WHERE m.conversation_id=c.id AND m.state='ready' AND m.author_id!=? AND m.created_at>=cm.joined_at AND NOT EXISTS(SELECT 1 FROM blocks b WHERE b.user_id=cm.user_id AND b.blocked_id=m.author_id) AND NOT EXISTS(SELECT 1 FROM progress p WHERE p.message_id=m.id AND p.user_id=? AND p.watched=1)) unread,
     (SELECT count(*) FROM messages m WHERE m.conversation_id=c.id AND m.state='ready' AND m.kind IN ('video','audio') AND m.author_id!=cm.user_id AND m.created_at>=cm.joined_at AND NOT EXISTS(SELECT 1 FROM blocks b WHERE b.user_id=cm.user_id AND b.blocked_id=m.author_id) AND NOT EXISTS(SELECT 1 FROM progress p WHERE p.message_id=m.id AND p.user_id=cm.user_id AND p.watched=1)) unwatched,
@@ -23,7 +25,8 @@ conversations.post("/", async (c) => {
     c,
     z.object({
       id,
-      title: z.string().trim().min(1).max(80),
+      title: z.string().trim().max(80).optional(),
+      invite_id: id.optional(),
       member_ids: z.array(z.string().min(1).max(100)).max(50).optional(),
     }),
   );
@@ -36,6 +39,8 @@ conversations.post("/", async (c) => {
     .first<{ creator_id: string }>();
   if (existing && existing.creator_id !== uid)
     fail(409, "Conversation ID already exists");
+  if (existing && (await membership(c.env, input.id, uid)).role !== "owner")
+    fail(403, "Only the owner can add people or create invitations");
   const members = [
     ...new Set((input.member_ids ?? []).filter((id) => id !== uid)),
   ];
@@ -43,20 +48,66 @@ conversations.post("/", async (c) => {
     if (!(await knownContact(c.env, uid, memberId)))
       fail(403, "You can only add people you already talk with");
   }
-  await c.env.DB.batch([
-    c.env.DB.prepare(
-      "INSERT OR IGNORE INTO conversations VALUES(?,?,?,?)",
-    ).bind(input.id, input.title, uid, now),
-    c.env.DB.prepare(
-      "INSERT OR IGNORE INTO members(conversation_id,user_id,joined_at,role) VALUES(?,?,?,'owner')",
-    ).bind(input.id, uid, now),
-    ...members.map((memberId) =>
+  if (input.invite_id) {
+    const used = await c.env.DB.prepare(
+      "SELECT conversation_id FROM invites WHERE token=?",
+    )
+      .bind(input.invite_id)
+      .first<{ conversation_id: string }>();
+    if (used && used.conversation_id !== input.id)
+      fail(409, "Invitation ID already exists");
+  }
+  try {
+    await c.env.DB.batch([
       c.env.DB.prepare(
-        "INSERT OR IGNORE INTO members(conversation_id,user_id,joined_at,role) VALUES(?,?,?,'member')",
-      ).bind(input.id, memberId, now),
-    ),
-  ]);
-  return c.json({ id: input.id }, 201);
+        // A conflicting owner aborts the whole batch, including simultaneous requests.
+        "INSERT INTO conversations VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET creator_id=CASE WHEN conversations.creator_id=excluded.creator_id THEN conversations.creator_id ELSE NULL END",
+      ).bind(input.id, input.title ?? "", uid, now),
+      c.env.DB.prepare(
+        "INSERT OR IGNORE INTO members(conversation_id,user_id,joined_at,role) VALUES(?,?,?,'owner')",
+      ).bind(input.id, uid, now),
+      ...(input.invite_id
+        ? [
+            c.env.DB.prepare(
+              "INSERT INTO invites VALUES(?,?,?,?) ON CONFLICT(token) DO UPDATE SET conversation_id=CASE WHEN invites.conversation_id=excluded.conversation_id THEN invites.conversation_id ELSE NULL END",
+            ).bind(input.invite_id, input.id, uid, now + 7 * 86400000),
+          ]
+        : []),
+      ...members.map((memberId) =>
+        c.env.DB.prepare(
+          "INSERT OR IGNORE INTO members(conversation_id,user_id,joined_at,role) VALUES(?,?,?,'member')",
+        ).bind(input.id, memberId, now),
+      ),
+    ]);
+  } catch (error) {
+    const conflict = await c.env.DB.prepare(
+      "SELECT creator_id FROM conversations WHERE id=?",
+    )
+      .bind(input.id)
+      .first<{ creator_id: string }>();
+    const invite = input.invite_id
+      ? await c.env.DB.prepare(
+          "SELECT conversation_id FROM invites WHERE token=?",
+        )
+          .bind(input.invite_id)
+          .first<{ conversation_id: string }>()
+      : null;
+    if (
+      (conflict && conflict.creator_id !== uid) ||
+      (invite && invite.conversation_id !== input.id)
+    )
+      fail(409, "Conversation or invitation ID already exists");
+    throw error;
+  }
+  return c.json(
+    {
+      id: input.id,
+      ...(input.invite_id
+        ? { url: `${c.env.APP_URL}/join/${input.invite_id}` }
+        : {}),
+    },
+    201,
+  );
 });
 conversations.get("/:id", async (c) => {
   const uid = c.get("userId"),
@@ -128,7 +179,7 @@ conversations.post("/:id/invite", async (c) => {
   await c.env.DB.prepare("INSERT INTO invites VALUES(?,?,?,?)")
     .bind(token, cid, uid, Date.now() + 7 * 86400000)
     .run();
-  return c.json({ token, url: `genoa://join/${token}` });
+  return c.json({ token, url: `${c.env.APP_URL}/join/${token}` });
 });
 conversations.delete("/:id/members/:userId", async (c) => {
   const cid = c.req.param("id"),

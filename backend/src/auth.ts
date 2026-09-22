@@ -10,10 +10,29 @@ export function auth(env: Env) {
     baseURL: env.APP_URL,
     basePath: "/auth",
     database: env.DB,
-    emailAndPassword: { enabled: true, minPasswordLength: 12 },
+    emailAndPassword: { enabled: true, minPasswordLength: 6 },
     plugins: [bearer()],
+    socialProviders: {
+      ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+        ? {
+            google: {
+              clientId: env.GOOGLE_CLIENT_ID,
+              clientSecret: env.GOOGLE_CLIENT_SECRET,
+            },
+          }
+        : {}),
+      ...(env.APPLE_CLIENT_ID && env.APPLE_CLIENT_SECRET
+        ? {
+            apple: {
+              clientId: env.APPLE_CLIENT_ID,
+              clientSecret: env.APPLE_CLIENT_SECRET,
+            },
+          }
+        : {}),
+    },
     trustedOrigins: [
       env.APP_URL,
+      "https://appleid.apple.com",
       ...(env.LEGACY_APP_URL ? [env.LEGACY_APP_URL] : []),
       ...(env.ENVIRONMENT === "development" ? ["http://10.0.2.2:8787"] : []),
     ],

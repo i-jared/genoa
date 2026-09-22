@@ -79,9 +79,8 @@ struct API: Sendable {
   {
     var body: [String: Any] = ["email": email, "password": password]
     if let name { body["name"] = name }
-    var req = try request(
+    let req = try request(
       name == nil ? "/auth/sign-in/email" : "/auth/sign-up/email", method: "POST", body: body)
-    req.setValue(invite, forHTTPHeaderField: "X-Invite-Code")
     let (data, response) = try await session.data(for: req)
     try Self.validate(response, data: data)
     struct Result: Decodable {

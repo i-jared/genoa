@@ -87,3 +87,11 @@ fun timedReactionsDue(
     reactions
         .filter { positionMs >= it.positionMs && positionMs < it.positionMs + windowMs }
         .sortedBy { it.positionMs }
+
+/** Automatic playback never replays watched content or previews our own outgoing messages. */
+fun nextIncomingMessage(messages: List<Message>, selfId: String?, after: String? = null): Message? {
+    val start = after?.let { id -> messages.indexOfFirst { it.id == id } + 1 } ?: 0
+    return messages.drop(start).firstOrNull {
+        !it.watched && it.authorId != selfId && it.state in listOf("ready", "live")
+    }
+}

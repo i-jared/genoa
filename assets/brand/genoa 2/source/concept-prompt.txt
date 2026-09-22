@@ -1,9 +1,0 @@
-Mode: built-in image_gen.imagegen
-Use: visual exploration only. Production art was redrawn as deterministic SVG paths.
-
-Use case: logo-brand
-Asset type: logo concept for Genoa, a private video messenger for family and close friends.
-Primary request: Design one exceptionally refined, memorable logo and present it on a simple warm ivory canvas. A bold single-color geometric capital G subtly formed as an open conversation bubble, softly sculpted outer silhouette, wide confident strokes, beautifully balanced negative space. Human and calm, with enough distinctive character for a small app icon. No generic video camera. The lower-right terminal can suggest a tiny conversation tail; avoid extra symbols inside. Pair the symbol on the left with the exact word "Genoa" in a refined warm editorial serif, regular weight, generous counters.
-Composition: large centered horizontal logo, plenty of margin, a smaller square teal app tile below using the exact same ivory mark. Only these two applications. No explanatory labels.
-Color palette: deep teal #206F60, warm ivory #F5F3EE. No gradients, shadows, textures, or decorative lines.
-Constraints: vector-friendly flat shapes, polished professional identity, legible at 24 pixels, recognizable G, minimal geometry, no mockup photography, no watermarks, no slogan.

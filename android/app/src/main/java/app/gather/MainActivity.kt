@@ -1,10 +1,7 @@
 package app.gather
 
-import android.content.Intent
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.repeatOnLifecycle
-import kotlinx.coroutines.delay
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -21,10 +18,13 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.currentStateAsState
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gather.ui.*
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     private var notificationIntent by mutableStateOf<Intent?>(null)
@@ -50,8 +50,28 @@ class MainActivity : ComponentActivity() {
                 var focusId by remember { mutableStateOf<String?>(null) }
                 var chooseRecipient by rememberSaveable { mutableStateOf(false) }
                 val screenState = rememberSaveableStateHolder()
-                var notificationConversation by rememberSaveable { mutableStateOf(intent.getStringExtra("conversation_id")) }
-                var notificationMessage by rememberSaveable { mutableStateOf(intent.getStringExtra("message_id")) }
+                var notificationConversation by rememberSaveable {
+                    mutableStateOf(intent.getStringExtra("conversation_id"))
+                }
+                var notificationMessage by rememberSaveable {
+                    mutableStateOf(intent.getStringExtra("message_id"))
+                }
+                LaunchedEffect(notificationIntent?.data, intent.data) {
+                    val data = (notificationIntent ?: intent).data
+                    if (data?.host == "join" && data.scheme in listOf("genoa", "gather")) {
+                        data.lastPathSegment
+                            ?.takeIf { runCatching { java.util.UUID.fromString(it) }.isSuccess }
+                            ?.let {
+                                vm.repo.session.pendingInvite = it
+                                if (state.person != null) vm.join(it)
+                            }
+                    }
+                    if (data?.scheme == "genoa" && data.host == "auth") {
+                        vm.completeSocialSignIn(data)
+                        intent.data = null
+                        notificationIntent?.data = null
+                    }
+                }
                 LaunchedEffect(notificationIntent) {
                     notificationIntent?.let {
                         notificationConversation = it.getStringExtra("conversation_id")
@@ -59,12 +79,27 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 LaunchedEffect(vm) {
-                    lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.synchronizeWhileVisible() }
+                    lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        vm.synchronizeWhileVisible()
+                    }
                 }
                 val lifecycleState by lifecycle.currentStateAsState()
-                LaunchedEffect(notificationConversation, notificationMessage, state.person?.id, live, recorder, lifecycleState) {
+                LaunchedEffect(
+                    notificationConversation,
+                    notificationMessage,
+                    state.person?.id,
+                    live,
+                    recorder,
+                    lifecycleState,
+                ) {
                     val cid = notificationConversation ?: return@LaunchedEffect
-                    if (state.person == null || live || recorder != null || !lifecycleState.isAtLeast(Lifecycle.State.STARTED)) return@LaunchedEffect
+                    if (
+                        state.person == null ||
+                            live ||
+                            recorder != null ||
+                            !lifecycleState.isAtLeast(Lifecycle.State.STARTED)
+                    )
+                        return@LaunchedEffect
                     while (!vm.openNotification(cid, notificationMessage)) delay(5_000)
                     notificationConversation = null
                     notificationMessage = null
@@ -81,6 +116,7 @@ class MainActivity : ComponentActivity() {
                             app.gather.media.PlaybackService::class.java,
                         )
                     )
+                    vm.replyMode(true)
                     recorder = audio
                     reply = target
                 }
@@ -92,6 +128,7 @@ class MainActivity : ComponentActivity() {
                         )
                     )
                     reply = target
+                    vm.replyMode(true)
                     startLiveOnOpen = startImmediately
                     live = true
                 }
@@ -122,13 +159,7 @@ class MainActivity : ComponentActivity() {
                         vm.registerPush()
                         if (Build.VERSION.SDK_INT >= 33)
                             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        intent.data
-                            ?.takeIf { it.host == "join" }
-                            ?.lastPathSegment
-                            ?.let {
-                                vm.join(it)
-                                intent.data = null
-                            }
+                        vm.repo.session.pendingInvite?.let { vm.join(it) }
                     }
                 }
                 LaunchedEffect(state.error) {
@@ -216,6 +247,7 @@ class MainActivity : ComponentActivity() {
                                         focusId,
                                         startOnOpen = startLiveOnOpen,
                                         onWatch = { id ->
+                                            vm.replyMode(false)
                                             focusId = id
                                             live = false
                                         },
@@ -224,10 +256,18 @@ class MainActivity : ComponentActivity() {
                                             record(audio, target)
                                         },
                                     ) {
-                                        live = false
+                                        vm.run {
+                                            focusId = vm.incomingAfterRecording()?.id ?: focusId
+                                            live = false
+                                        }
                                     }
                                 recorder != null ->
-                                    RecorderScreen(vm, recorder!!, reply) { recorder = null }
+                                    RecorderScreen(vm, recorder!!, reply) {
+                                        vm.run {
+                                            focusId = vm.incomingAfterRecording()?.id ?: focusId
+                                            recorder = null
+                                        }
+                                    }
                                 settings -> SettingsScreen(vm, state) { settings = false }
                                 state.selected != null ->
                                     screenState.SaveableStateProvider(
@@ -239,7 +279,9 @@ class MainActivity : ComponentActivity() {
                                             focusId,
                                             onFocus = { focusId = it },
                                             onRecord = { audio, target -> record(audio, target) },
-                                            onLive = { target -> shareLive(target, startImmediately = true) },
+                                            onLive = { target ->
+                                                shareLive(target, startImmediately = true)
+                                            },
                                             onClose = {
                                                 focusId = null
                                                 vm.back()

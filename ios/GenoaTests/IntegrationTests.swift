@@ -48,6 +48,15 @@ final class IntegrationTests: XCTestCase {
     XCTAssertEqual(page.messages.count, 1)
     let message = try XCTUnwrap(page.messages.first)
     XCTAssertEqual(message.id, draft.id)
+    let watch = WatchModel()
+    watch.configure(conversation: cid, api: api, store: store)
+    let focused = await watch.afterRecording(userId: "another-viewer")
+    XCTAssertEqual(
+      focused?.id, message.id, "Returning from capture must include the server's first unseen focus"
+    )
+    let own = await watch.afterRecording(userId: me.id)
+    XCTAssertNil(own, "An outgoing recording must not autoplay")
+    XCTAssertTrue(watch.finished)
     let playback = PlaybackController()
     playback.configure(api: api, store: store) {}
     playback.select(message)

@@ -1,6 +1,6 @@
-# Production readiness review — September 16, 2026
+# Production readiness
 
-**Recommendation: keep Genoa in a controlled, invite-only beta.** The core flow is implemented, but the remaining reliability and release gates below prevent a public-production sign-off. This review covers Android capture/drafts/upload/playback, API authorization/media/reactions, deletion, live events, jobs, configuration, and release packaging. It is a code review with targeted tests, not a penetration test or a long-duration device certification.
+**Genoa remains beta software with unresolved release gates.** Signup is now open; do not mistake that for production certification. The core flow is implemented, but the remaining reliability and release gates below prevent a public-production sign-off. This review covers Android capture/drafts/upload/playback, API authorization/media/reactions, deletion, live events, jobs, configuration, and release packaging. It is a code review with targeted tests, not a penetration test or a long-duration device certification.
 
 ## Findings to address before wider use
 
@@ -46,10 +46,8 @@ Validate supported codecs/dimensions/duration before publication, fail unsupport
 - **Repeatable releases:** the source is now in Git and local release scripts are supplied; no CI workflow was found. Review and commit the release changes and run builds, tests, migrations, and deployment checks in a repeatable pipeline.
 - **Device/accessibility evidence:** verify two-device send/watch/reply, long recordings, weak-network restart/retry, interruptions, large text, TalkBack, and an optimized signed build. Emulator screenshots alone cannot establish camera, battery, or background behavior.
 
-## Changes and evidence from this pass
+## Live error recovery
 
-The logo is connected to Home, sign-in, About, launcher/themed icons, system splash, and push/upload/playback notifications. Conversation opening now uses a bounded server window around the first unseen incoming message, falling back to the newest message. Older/newer pages preserve the focused message and filmstrip position. Own reactions rise from the picker after server acceptance; other people's timed reactions appear in a bounded stack of named cards and expire in order.
+The September 21 source review also found that `LiveScreen.finishWithReplay` can fail while saving or scheduling upload without exposing a handled recovery state, and capture-start errors may disappear when the screen closes. Preserve recoverable files, make finalization retryable outside the screen, and keep failures visible with a deliberate recovery action. These findings were not reproduced through physical-device fault injection and remain unverified as fixed.
 
-Targeted checks cover history beyond the newest 50 messages, contiguous pagination, authorization, blocked senders, reaction identity/idempotency, migration preservation and legacy writes, first-frame loading, card expiry/replay, and history merging after deletion. The production backend dependency audit reported zero known vulnerabilities on the audit date; that is not a security certification. See [FEATURES.md](FEATURES.md) for final build/device and deployment results.
-
-After explicit user approval, production migrations `0005.sql` and `0006.sql` were applied, preserving all three existing reactions. They retain the legacy reaction table and mirror legacy writes during cutover. The tested Worker was deployed as version `661ae370-3651-44fa-96f5-66a5bf997c61`. Production checks passed for authorization, first-unseen/latest selection, older paging, named timed reactions, duplicate submissions, and legacy message-list compatibility using two disposable accounts; both accounts were deleted and their sessions verified revoked. A fresh D1 recovery bookmark was captured before rollout; no restore was performed. Android 0.2.6 was installed in place and launched successfully on the owner's Razr. This approved beta deployment does not resolve the public-launch findings above.
+Prior build/emulator evidence and current selection behavior are consolidated in [FEATURES.md](FEATURES.md). Historical findings above are retained until explicitly reproduced or resolved; repository cleanup is not a fresh security review.

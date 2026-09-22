@@ -25,6 +25,7 @@ struct RecorderScreen: View {
   @State private var segmentSink: LiveSegmentSink?
   @State private var liveFailure: String?
   @State private var preview: AVPlayer?
+  @State private var queuedNotice = false
   var body: some View {
     ZStack {
       Color(hex: 0x17251F).ignoresSafeArea()
@@ -74,8 +75,10 @@ struct RecorderScreen: View {
               Task {
                 guard let draft else { return }
                 preview?.pause()
-                await model.perform { try await model.outbox?.send(draft.id) }
-                dismiss()
+                await model.perform {
+                  try await model.outbox?.send(draft.id)
+                  await readyForNextRecording()
+                }
               }
             }.buttonStyle(PrimaryButton()).accessibilityIdentifier("recorder.send")
             HStack {
@@ -86,6 +89,7 @@ struct RecorderScreen: View {
           }.padding().background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 20))
         } else {
           if !engine.recording {
+            if queuedNotice { Text("Message queued. Ready for another?").font(.footnote) }
             Text(
               destination.live
                 ? "Start sharing live with \(destination.conversation.title). They can watch while you record."
@@ -118,6 +122,7 @@ struct RecorderScreen: View {
     .interactiveDismissDisabled(engine.recording || starting || saving)
     .task {
       model.playback.stop()
+      await model.playback.flushProgress()
       model.isCapturing = true
       do {
         try await engine.prepare(kind: destination.kind)
@@ -193,10 +198,7 @@ struct RecorderScreen: View {
       }
       segmentSink = sink
       try await engine.start(
-        file: store.file(d.filename), live: destination.live,
-        angle: cameraAngle(
-          UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first?
-            .interfaceOrientation)
+        file: store.file(d.filename), live: destination.live
       ) { data, number, duration in
         sink.append(data, number: number, duration: duration)
       }
@@ -211,6 +213,22 @@ struct RecorderScreen: View {
         try? await api.mutate("/api/live/\(d.id)/end")
         sharing = false
       }
+    }
+  }
+  func readyForNextRecording() async {
+    preview?.pause()
+    preview = nil
+    draft = nil
+    review = false
+    sharing = false
+    queuedNotice = true
+    do {
+      guard let api = model.api, let store = model.store else { return }
+      let watch = WatchModel()
+      watch.configure(conversation: destination.conversation.id, api: api, store: store)
+      if await watch.afterRecording(userId: model.person?.id) != nil { dismiss() }
+    } catch {
+      // A connection loss never hides the saved draft or forces playback/navigation.
     }
   }
   func finish(close: Bool = false) async {
@@ -232,7 +250,7 @@ struct RecorderScreen: View {
       await model.reloadLocal()
       if destination.live {
         await model.outbox?.run()
-        dismiss()
+        await readyForNextRecording()
       } else if close {
         dismiss()
       } else {

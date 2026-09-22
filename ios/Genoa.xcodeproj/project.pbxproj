@@ -12,6 +12,7 @@
 		0A0B54D8688820031B27BF88 /* LocalStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BFD75DC962E7B7FD3054BE7 /* LocalStoreTests.swift */; };
 		0A3E7565669746E2069FEA8F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AFC81A932AB3372DF12F25E3 /* PrivacyInfo.xcprivacy */; };
 		195307A1EBA031CF8C2A30BB /* WatchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEC6E484D9673607A9BA4736 /* WatchScreen.swift */; };
+		1C699D269BCC3B8BDB71635E /* SocialSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 474D1442F56835BB84498EAF /* SocialSignIn.swift */; };
 		22138FCB67FF2DFED2F65C32 /* GenoaFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FED8B0CBA1BD817717BF0C12 /* GenoaFlowTests.swift */; };
 		2D2BD671734C8D4A5035726D /* RecorderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BF6627F25ADBBC9FCE29A66 /* RecorderScreen.swift */; };
 		2FA5367311A4FC62A458C6C8 /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3043EEDF28ED47B7746F1510 /* API.swift */; };
@@ -23,6 +24,7 @@
 		692BE42E91F719E9221F749B /* LocalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65916675199A77E293676E21 /* LocalStore.swift */; };
 		71183D5215C687F931EA7F2B /* IntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719D7C51DFF78831C018D80C /* IntegrationTests.swift */; };
 		8E02CA11EF25F25293B63F2B /* LiveSegmentSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4D5194D01D501EEB4E03B45 /* LiveSegmentSink.swift */; };
+		92DBDCA42C070E08826198D6 /* WatchSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2218CAEEDE33ED31526FDF /* WatchSelectionTests.swift */; };
 		AA177D64C042C2DE681C0346 /* GenoaTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = E874A7A6054836A89E732763 /* GenoaTheme.swift */; };
 		B7634AEA06C43DC8902CA0D3 /* AuthScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80738848F8501897F4957D2F /* AuthScreen.swift */; };
 		C2885ABB38D0011AFA1C0834 /* WatchModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4234525C2206C7A5E0327587 /* WatchModel.swift */; };
@@ -69,9 +71,11 @@
 		4117DBF442372F12ADEA18F1 /* Genoa.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Genoa.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		413AA17ED2B97D8A61FB7AC0 /* MediaLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLibrary.swift; sourceTree = "<group>"; };
 		4234525C2206C7A5E0327587 /* WatchModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchModel.swift; sourceTree = "<group>"; };
+		474D1442F56835BB84498EAF /* SocialSignIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialSignIn.swift; sourceTree = "<group>"; };
 		49AEDE4BABF681412AC2C193 /* ConversationsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationsScreen.swift; sourceTree = "<group>"; };
 		49B2BC5F17E42298B1E82B91 /* GenoaUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GenoaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		528EF6ADF63F8CC67734E4FF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		5E2218CAEEDE33ED31526FDF /* WatchSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSelectionTests.swift; sourceTree = "<group>"; };
 		65916675199A77E293676E21 /* LocalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalStore.swift; sourceTree = "<group>"; };
 		691C997E0404B9B0DCA18587 /* ReactionRail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionRail.swift; sourceTree = "<group>"; };
 		6D332ED59A98802F08653486 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -102,6 +106,7 @@
 				0501FCC8447886881AA1DCD2 /* Models.swift */,
 				028BECAEEC9B125D79B03F5D /* Outbox.swift */,
 				2F9FE3B4661A5D1F0840E342 /* SessionVault.swift */,
+				474D1442F56835BB84498EAF /* SocialSignIn.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -209,6 +214,7 @@
 				719D7C51DFF78831C018D80C /* IntegrationTests.swift */,
 				2BFD75DC962E7B7FD3054BE7 /* LocalStoreTests.swift */,
 				E596AEEAFF0FE5059B9CFA8A /* SessionVaultTests.swift */,
+				5E2218CAEEDE33ED31526FDF /* WatchSelectionTests.swift */,
 			);
 			path = GenoaTests;
 			sourceTree = "<group>";
@@ -351,6 +357,7 @@
 				4EBF42958E7F3A385882C558 /* ReactionRail.swift in Sources */,
 				2D2BD671734C8D4A5035726D /* RecorderScreen.swift in Sources */,
 				D87EBC7E57AA9D7F5CFB8C2F /* SessionVault.swift in Sources */,
+				1C699D269BCC3B8BDB71635E /* SocialSignIn.swift in Sources */,
 				FF6EF5354E00B49555261E68 /* Thumbnails.swift in Sources */,
 				C2885ABB38D0011AFA1C0834 /* WatchModel.swift in Sources */,
 				195307A1EBA031CF8C2A30BB /* WatchScreen.swift in Sources */,
@@ -373,6 +380,7 @@
 				71183D5215C687F931EA7F2B /* IntegrationTests.swift in Sources */,
 				0A0B54D8688820031B27BF88 /* LocalStoreTests.swift in Sources */,
 				35A5D8C7F90C42FACB239E81 /* SessionVaultTests.swift in Sources */,
+				92DBDCA42C070E08826198D6 /* WatchSelectionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -461,7 +469,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = DCWP7J7692;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -483,7 +491,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -565,7 +573,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = DCWP7J7692;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -581,7 +589,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

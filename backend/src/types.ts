@@ -8,7 +8,11 @@ export interface Env {
   LEGACY_APP_URL?: string;
   ENVIRONMENT: string;
   BETTER_AUTH_SECRET: string;
-  BETA_INVITE_CODE: string;
+  BETA_INVITE_CODE?: string; // Accepted by older test environments; no signup gate.
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  APPLE_CLIENT_ID?: string;
+  APPLE_CLIENT_SECRET?: string;
   AI?: Ai;
   FCM_SERVICE_ACCOUNT?: string;
   APNS_CREDENTIALS?: string;

@@ -1,46 +1,54 @@
 # Genoa
 
-Website: [talkgenoa.com](https://talkgenoa.com). This rename does not configure website hosting or DNS; the app continues to use the deployed API.
+Private video messaging for Android and iOS, built with Kotlin/Compose, SwiftUI/AVFoundation, and a shared Cloudflare backend.
 
-Native Android and iOS video messaging with a shared Cloudflare backend. The product plan is in [PLAN.md](PLAN.md); binding engineering and UI guidance is in [AGENTS.md](AGENTS.md). Implementation decisions and honest verification status live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/FEATURES.md](docs/FEATURES.md).
+Record a message, send it to a person or group, and watch or reply when convenient. Genoa supports voice, photos, live sharing, reactions, and durable uploads. Media access is authorized by the server; messages are not end-to-end encrypted. This is beta software; see [feature status and verification](docs/FEATURES.md) and [known reliability gaps](docs/PRODUCTION-READINESS.md).
 
-The visual and interaction design, inspired by the supplied Genoa reference, is in [docs/DESIGN.md](docs/DESIGN.md). Android 0.2.0 applies its palette, typography, custom icons, navigation, contextual controls, and private recording/review flow. See [verification status](docs/FEATURES.md) for tested behavior and remaining device checks.
+## Repository
 
-Explore the [visual design guideline webpage](https://genoa-design-guide.i-jared.chatgpt.site), with screen examples, colors, typography, components, and interaction states. Its source is in `design-guide/`; these are design samples, not a functioning messenger.
+| Directory | Contents |
+|---|---|
+| `android/` | Native Android app and tests |
+| `ios/` | Native iOS app, Xcode project, and tests |
+| `backend/` | Workers API, D1 migrations, and integration tests |
+| `docs/` | Architecture, design, feature status, and configuration |
+| `assets/` | Canonical brand assets, sources, and font license |
+| `scripts/release/` | Repeatable build and store-asset commands |
+| `store/` | Listing copy, reviewed screenshots, and demo media |
+| `dist/` | Latest local build outputs; generated and ignored by Git |
 
-## Try the beta
+## Build Android
 
-Install `artifacts/genoa-android-debug.apk` on Android 10 or newer. It defaults to the deployed HTTPS backend. Use the private invitation code in `artifacts/BETA-ACCESS.txt` to create your account; then create a conversation and share its group invitation link. The APK uses a development signing key.
+Requires Node 22+, JDK 17 or a newer Gradle-compatible JDK, Android SDK 36, and an Android 10+ device or emulator.
 
-## Native iOS
-
-Open [ios/Genoa.xcodeproj](ios/Genoa.xcodeproj) in Xcode 26 or later. The SwiftUI/AVFoundation app targets iOS 17+, uses the Genoa design system and existing accounts, and includes native recording, live HLS, durable uploads, playback, and contextual conversation/account controls. See [iOS build, test, and Apple configuration instructions](ios/README.md). The iOS-compatible Worker is deployed to production; App Store signing is verified; backend APNs configuration and physical-device parity verification remain release steps.
-
-## Run locally
-
-Requirements: Node 22+, JDK 17 or newer supported by Gradle, Android SDK 36, Android 10+ device/emulator.
+Start the local backend:
 
 ```sh
 cd backend
 npm ci
 cp .dev.vars.example .dev.vars
-# Set a long random BETTER_AUTH_SECRET and your BETA_INVITE_CODE in .dev.vars.
+# Set a long random BETTER_AUTH_SECRET in .dev.vars.
 npm run migrate:local
 npm run dev
 ```
 
-Open `android/` in Android Studio. In the app's **Server connection** field, use `http://10.0.2.2:8787` for the Android emulator. Local HTTP is allowed only for emulator/loopback development hosts. The default server is the dedicated HTTPS Genoa deployment.
+Open `android/` in Android Studio. Set **Server connection** in the app to `http://10.0.2.2:8787` for the emulator. Local HTTP is restricted to emulator/loopback development hosts. Builds otherwise default to the hosted Genoa API; use a local server for development and tests.
+
+From the repository root:
 
 ```sh
-cd android
-./gradlew :app:assembleDebug :app:lintDebug
+./scripts/release/android.sh --debug
 ```
 
-The installable development APK is `android/app/build/outputs/apk/debug/app-debug.apk`. It uses the development signing key. The store application ID is `app.genoa`; see the release handoff for the upload-key signing setup.
+The APK is always **`dist/android/Genoa-debug.apk`**. Signed releases use **`dist/android/Genoa.apk`** and **`dist/android/Genoa.aab`**. Build outputs are local files, not included in a fresh clone. See [release instructions](store/README.md) for signing, checksums, iOS exports, and store assets.
 
-## Verification
+## Build iOS
 
-With the local backend running:
+Open `ios/Genoa.xcodeproj` in Xcode 26 or later and run the **Genoa** scheme on an iOS 17+ simulator. Device builds require your Apple development team. See [iOS setup and testing](ios/README.md).
+
+## Verify changes
+
+Backend tests create disposable local state:
 
 ```sh
 cd backend
@@ -48,43 +56,38 @@ npm run check
 npm test
 ```
 
-Android instrumentation tests use an emulator and the local invitation code `local-genoa-beta`. They create their own accounts. Use a dedicated emulator with synthetic front and back cameras, never a user's populated device:
+Android build, unit tests, and static checks:
 
 ```sh
 cd android
-ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest
+./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 ```
 
-Installation and storage identifiers retain their existing values for upgrade compatibility; see [the compatibility notes](docs/ARCHITECTURE.md#product-name-and-compatibility).
-
-## Cloudflare deployment
-
-`backend/wrangler.production.jsonc` contains the dedicated Genoa D1, R2, Queues, Durable Object, and Workers AI bindings. Local state is separate in `wrangler.jsonc`. Apply migrations before deployment:
+For the onboarding/record/send flow, start `./ios/scripts/test-server.sh` and use a dedicated emulator with synthetic cameras:
 
 ```sh
-cd backend
-npm run migrate:production
-npm run deploy
+cd android
+adb -s emulator-5554 reverse tcp:18888 tcp:18888
+ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=app.gather.UsabilityFlowTest
 ```
 
-Production API: `https://genoa-api.hp-accounts.workers.dev`. The previous beta address forwards to it. See [the service migration record](docs/SERVICE-RENAME.md) for verification and retained compatibility identities.
+Other instrumentation classes use local servers on ports 8787 or 18891; configure their fixtures and reverse ports before running the full suite. Tests must not run against a personal phone or production database. See [iOS verification](ios/README.md#local-verification) for simulator commands.
 
-Required Worker secrets: `BETTER_AUTH_SECRET`, `BETA_INVITE_CODE`, `FCM_SERVICE_ACCOUNT`. Use Wrangler's secret input; never commit credentials. The Firebase Android configuration is a public client identifier, not a service-account credential.
+## Contributing
 
-## Operations
+Read [AGENTS.md](AGENTS.md), [the product plan](PLAN.md), and [the architecture](docs/ARCHITECTURE.md). Keep changes focused, preserve draft and permission behavior, and run the checks relevant to your changes. Android UI follows [the design specification](docs/DESIGN.md); the [visual reference](docs/design/guide/index.html) and custom icons are included in this repo.
 
-- Inspect Worker logs by request/job ID; never add message content or tokens to logs.
-- Monitor the `genoa-failed` dead-letter queue and replay jobs only after fixing their cause. Queued deletion uses tombstones so access is revoked immediately.
-- Schedule database restore drills before widening the beta. R2 object durability alone is not a complete backup plan.
-- Review reports in D1 through an authenticated administrator workflow. The app does not automatically act on reports.
-- Monitor storage, AI minutes, queue failures, and Worker/D1 latency. Long recordings and forwarded copies increase retained storage.
-- Beta uploads are capped at 8 GB and 24 hours; published history does not expire automatically.
-- Authentication is email/password with invitation-gated registration. Email recovery and social sign-in are not configured.
+Record what was tested and any remaining device or deployment requirements in [docs/FEATURES.md](docs/FEATURES.md). Keep generated builds, logs, private recordings, credentials, and signing keys out of commits. `dist/` is disposable build output; `.local/` is ignored private storage and must never be packaged or deleted by a build cleanup.
 
-## Optional AI integration check
+## Deployment
 
-`backend/tools/verify-ai.mjs` uses only the bundled synthetic speech fixture. With `TEST_API_URL` and `TEST_INVITE_CODE` set for a dedicated test deployment, run `node tools/verify-ai.mjs` from `backend/`. It creates a disposable account, uploads the sample, checks actual transcription/summary/caption output and consent revocation, then deletes the account. This invokes paid Workers AI models; run it deliberately, not as part of ordinary unit tests.
+The checked-in `backend/wrangler.production.jsonc` identifies the hosted Genoa deployment. For your own deployment, provision separate D1, private R2, Queues, and Durable Object resources and update the configuration before using `npm run migrate:production` or `npm run deploy`. Use your own Firebase client configuration and signing identities for a distributed fork. Android and iOS currently use `app.genoa`.
 
-## Release builds and store assets
+Set Worker secrets through Wrangler, never in tracked files. Authentication needs `BETTER_AUTH_SECRET`; push uses `FCM_SERVICE_ACCOUNT` and optional `APNS_CREDENTIALS`. See [Google/Apple sign-in setup](docs/SOCIAL-SIGN-IN.md) and [iOS push setup](ios/README.md). Email signup is open; social buttons stay hidden until providers are configured. Password recovery is not implemented.
 
-See [the release handoff](store/README.md) for the Android APK/AAB, signed iOS IPA/dSYMs, verified icons and store screenshots, listing copy, checksums, and repeatable signing commands. Both store app IDs are `app.genoa`. Android APK/AAB and the iOS App Store IPA are signed and verified. Store-account requirements and physical-device verification remain.
+Monitor queue failures, storage, AI usage, and database latency. Published messages do not expire automatically; per-message limits are 8 GB and 24 hours. Backup/restore drills, recovery, moderation, and physical-device checks remain [release gates](docs/PRODUCTION-READINESS.md).
+
+## License
+
+[MIT](LICENSE). The bundled Newsreader font retains its [SIL Open Font License](assets/brand/genoa/licenses/Newsreader-OFL.txt).

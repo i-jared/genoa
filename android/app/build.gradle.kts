@@ -7,7 +7,7 @@ require(releaseSigning.values.all { it == null } || releaseSigning.values.all { 
 android {
     namespace = "app.gather"
     compileSdk = 36
-    defaultConfig { applicationId = "app.genoa"; minSdk = 29; targetSdk = 36; versionCode = 12; versionName = "0.2.8"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
+    defaultConfig { applicationId = "app.genoa"; minSdk = 29; targetSdk = 36; versionCode = 13; versionName = "0.2.9"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
