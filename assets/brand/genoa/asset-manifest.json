@@ -8,11 +8,6 @@
       "sha256": "158b1bc88f8ed86ba7f700556d454c093ecf0adfda576d46eb5967769b8ca0fb"
     },
     {
-      "path": "VALIDATION.md",
-      "bytes": 1380,
-      "sha256": "4e12fc64197dd21ad44b8d50e066535a81acd4235f7437fa79ce3656c0b5a6ae"
-    },
-    {
       "path": "android/res/drawable/genoa_brand_mark.xml",
       "bytes": 702,
       "sha256": "04dbbd9f4e00d72bf8b97672f764d4a1ec48c2235765678aaf2beb40bd6eca93"

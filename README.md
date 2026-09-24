@@ -1,104 +1,122 @@
-# Genoa
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/genoa/png/genoa-logo-horizontal-ivory@2x.png">
+    <img alt="Genoa" src="assets/brand/genoa/png/genoa-logo-horizontal-teal@2x.png" width="280">
+  </picture>
+</p>
 
-Private video messaging for Android and iOS, built with Kotlin/Compose, SwiftUI/AVFoundation, and a shared Cloudflare backend.
+<p align="center">
+  Private video messaging for families and small groups.<br>
+  Record a message, send it, and watch or reply whenever it suits you.
+</p>
 
-Record a message, send it to a person or group, and watch or reply when convenient. Genoa supports voice, photos, live sharing, reactions, and durable uploads. Media access is authorized by the server; messages are not end-to-end encrypted. This is beta software; see [feature status and verification](docs/FEATURES.md) and [known reliability gaps](docs/PRODUCTION-READINESS.md).
+<p align="center">
+  <a href="https://github.com/i-jared/genoa/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/i-jared/genoa/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-206f60"></a>
+</p>
+
+<p align="center">
+  <img src="store/screenshots/iphone/01-home.png" width="200" alt="Conversation list">
+  <img src="store/screenshots/iphone/02-watch.png" width="200" alt="Watching a message">
+  <img src="store/screenshots/iphone/03-people.png" width="200" alt="People in a conversation">
+  <img src="store/screenshots/iphone/04-scratchpad.png" width="200" alt="Private scratchpad">
+</p>
+
+Genoa is a native Android and iOS app with a Cloudflare backend. Its core path is simple: find a conversation, watch what's new, record a reply, and know for certain whether it sent. Everything else stays out of the way.
+
+- **Video, voice and photos**, recorded in the app and sent only when you choose.
+- **Deliveries that survive real life.** Drafts are saved before uploading, and uploads resume after restarts and dropped connections.
+- **Watch at your own pace.** Resume where you left off, change speed, listen with the screen off, and see what's new at a glance.
+- **Live sharing, only with explicit consent.** Others can watch while you record, and there's a replay afterwards.
+- **Replies and timed reactions** that stay attached to their message.
+- **Bookmarks, private notes, reminders and forwarding**, each in context.
+- **Safety.** Block and report people, with an admin console for moderation.
+- **Your data.** Export or delete your account from the app.
+
+Media is private: the server authorizes every request, including each byte range and live segment. Messages are **not** end-to-end encrypted. Genoa is beta software; see [feature status](docs/FEATURES.md) for what is verified and what still blocks a public release.
 
 ## Repository
 
 | Directory | Contents |
 |---|---|
-| `android/` | Native Android app and tests |
-| `ios/` | Native iOS app, Xcode project, and tests |
-| `backend/` | Workers API, D1 migrations, and integration tests |
-| `admin/` | Moderation and operations console (Next.js on Vercel) |
-| `docs/` | Architecture, design, feature status, and configuration |
-| `assets/` | Canonical brand assets, sources, and font license |
-| `scripts/release/` | Repeatable build and store-asset commands |
-| `scripts/ops/` | Backup and restore drill |
-| `store/` | Listing copy, reviewed screenshots, and demo media |
-| `dist/` | Latest local build outputs; generated and ignored by Git |
+| [`android/`](android) | Kotlin and Jetpack Compose app |
+| [`ios/`](ios) | SwiftUI and AVFoundation app ([setup](ios/README.md)) |
+| [`backend/`](backend) | Cloudflare Worker (Hono, D1, R2, Queues, Durable Objects), migrations and tests |
+| [`admin/`](admin) | Moderation and operations console, Next.js on Vercel ([setup](admin/README.md)) |
+| [`docs/`](docs) | [Architecture](docs/ARCHITECTURE.md), [design](docs/DESIGN.md), [operations](docs/OPERATIONS.md), [feature status](docs/FEATURES.md) |
+| [`scripts/`](scripts) | Release builds and the backup/restore drill |
+| [`store/`](store) | Store listing copy and screenshots |
+| [`assets/`](assets) | Brand artwork and font license |
 
-## Build Android
+## Getting started
 
-Requires Node 22+, JDK 17 or a newer Gradle-compatible JDK, Android SDK 36, and an Android 10+ device or emulator.
+Requirements: Node 22+, JDK 17+ (Android Studio's bundled JDK works), Android SDK 36, and Xcode 26 for iOS.
 
-Start the local backend:
+### Backend
 
 ```sh
 cd backend
 npm ci
-cp .dev.vars.example .dev.vars
-# Set a long random BETTER_AUTH_SECRET in .dev.vars.
+cp .dev.vars.example .dev.vars   # set BETTER_AUTH_SECRET to 32+ random characters
 npm run migrate:local
-npm run dev
+npm run dev                      # http://localhost:8787
 ```
 
-Open `android/` in Android Studio. Set **Server connection** in the app to `http://10.0.2.2:8787` for the emulator. Local HTTP is restricted to emulator/loopback development hosts. Builds otherwise default to the hosted Genoa API; use a local server for development and tests.
+Development needs no external services. Emails (for example password resets) are written to a local `dev_emails` table instead of being sent.
 
-From the repository root:
+### Android
+
+Add a Firebase client configuration at `android/app/google-services.json` for the `app.genoa` package. It isn't committed; any Firebase project works for local builds. Then open `android/` in Android Studio, or run:
 
 ```sh
-./scripts/release/android.sh --debug
+./scripts/release/android.sh --debug   # builds, tests and lints; writes dist/android/Genoa-debug.apk
 ```
 
-The APK is always **`dist/android/Genoa-debug.apk`**. Signed releases use **`dist/android/Genoa.apk`** and **`dist/android/Genoa.aab`**. Build outputs are local files, not included in a fresh clone. See [release instructions](store/README.md) for signing, checksums, iOS exports, and store assets.
+In the app, set **Server connection** to `http://10.0.2.2:8787` to use the local backend from the emulator.
 
-## Build iOS
+### iOS
 
-Open `ios/Genoa.xcodeproj` in Xcode 26 or later and run the **Genoa** scheme on an iOS 17+ simulator. Device builds require your Apple development team. See [iOS setup and testing](ios/README.md).
+Open `ios/Genoa.xcodeproj` in Xcode and run the **Genoa** scheme on an iOS 17+ simulator. The project is generated from `ios/project.yml` with [XcodeGen](https://github.com/yonaskolb/XcodeGen). See [iOS setup](ios/README.md) for signing, push notifications and the isolated test server.
 
-## Verify changes
-
-Backend tests create disposable local state. Start the local Worker (`npm run dev`) first; the moderation/recovery suite reads the local D1 and R2 files to seed an admin and confirm deleted media is gone:
-
-```sh
-cd backend
-npm run check
-npm test
-```
-
-Admin console type checks, lint, tests and production build:
+### Admin console
 
 ```sh
 cd admin
-npm ci && npm run typecheck && npm run lint && npm test && npm run build
+npm ci
+cp .env.example .env.local   # then set SESSION_SECRET (openssl rand -base64 48)
+npm run dev
 ```
 
-`.github/workflows/ci.yml` runs the backend, admin, Android and iOS checks on every push and pull request once the repository has a GitHub remote.
+Grant access by adding your user to the `admins` table; [admin/README.md](admin/README.md) has the command.
 
-Android build, unit tests, and static checks:
+## Testing
 
 ```sh
-cd android
-./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+cd backend && npm run check && npm test          # needs `npm run dev` running
+cd admin && npm run typecheck && npm run lint && npm test && npm run build
+cd android && ./gradlew :app:testDebugUnitTest :app:lintDebug
 ```
 
-For the onboarding/record/send flow, start `./ios/scripts/test-server.sh` and use a dedicated emulator with synthetic cameras:
+The backend suites create their own accounts against the local Worker. They cover authorization, retries, interrupted uploads, deletion races, moderation and account recovery. For iOS, start `./ios/scripts/test-server.sh`, then run the `GenoaTests` target. Android instrumentation tests run on an emulator; see the test classes for the local servers they expect. Never point tests at a production database or a personal device.
 
-```sh
-cd android
-adb -s emulator-5554 reverse tcp:18888 tcp:18888
-ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=app.gather.UsabilityFlowTest
-```
-
-Other instrumentation classes use local servers on ports 8787 or 18891; configure their fixtures and reverse ports before running the full suite. Tests must not run against a personal phone or production database. See [iOS verification](ios/README.md#local-verification) for simulator commands.
-
-## Contributing
-
-Read [AGENTS.md](AGENTS.md), [the product plan](PLAN.md), and [the architecture](docs/ARCHITECTURE.md). Keep changes focused, preserve draft and permission behavior, and run the checks relevant to your changes. Android UI follows [the design specification](docs/DESIGN.md); the [visual reference](docs/design/guide/index.html) and custom icons are included in this repo.
-
-Record what was tested and any remaining device or deployment requirements in [docs/FEATURES.md](docs/FEATURES.md). Keep generated builds, logs, private recordings, credentials, and signing keys out of commits. `dist/` is disposable build output; `.local/` is ignored private storage and must never be packaged or deleted by a build cleanup.
+[CI](.github/workflows/ci.yml) runs the backend, admin, Android and iOS checks, plus a secret scan, on every push and pull request.
 
 ## Deployment
 
-The checked-in `backend/wrangler.production.jsonc` identifies the hosted Genoa deployment. For your own deployment, provision separate D1, private R2, Queues, and Durable Object resources and update the configuration before using `npm run migrate:production` or `npm run deploy`. Use your own Firebase client configuration and signing identities for a distributed fork. Android and iOS currently use `app.genoa`.
+`backend/wrangler.production.jsonc` describes the hosted Genoa deployment. For your own, create separate D1, R2, Queue and Durable Object resources, update the configuration, then:
 
-Set Worker secrets through Wrangler, never in tracked files. Authentication needs `BETTER_AUTH_SECRET`; push uses `FCM_SERVICE_ACCOUNT` and optional `APNS_CREDENTIALS`. See [Google/Apple sign-in setup](docs/SOCIAL-SIGN-IN.md) and [iOS push setup](ios/README.md). Email signup is open; social buttons stay hidden until providers are configured. Password reset and alert emails need `RESEND_API_KEY` and `EMAIL_FROM`; see [operations](docs/OPERATIONS.md).
+```sh
+cd backend
+npm run migrate:production
+npm run deploy
+```
 
-Monitor queue failures, storage, AI usage, and database latency. Published messages do not expire automatically; per-message limits are 8 GB and 24 hours. Backup/restore drills, recovery, moderation, and physical-device checks remain [release gates](docs/PRODUCTION-READINESS.md).
+Set secrets with `npx wrangler secret put`, never in tracked files. [Operations](docs/OPERATIONS.md) lists every secret and variable. It also covers the admin console, alerts, failed-job triage and backups. Signed app releases use `scripts/release/android.sh` and `scripts/release/ios.sh`; see [store/README.md](store/README.md).
+
+## Contributing
+
+Read [AGENTS.md](AGENTS.md) for the engineering and product guidelines, the [product plan](PLAN.md), and the [architecture](docs/ARCHITECTURE.md). Android UI follows the [design specification](docs/DESIGN.md). Keep changes focused and run the relevant checks. Update [feature status](docs/FEATURES.md) when verification changes.
 
 ## License
 
-[MIT](LICENSE). The bundled Newsreader font retains its [SIL Open Font License](assets/brand/genoa/licenses/Newsreader-OFL.txt).
+[MIT](LICENSE). The bundled Newsreader font is licensed under the [SIL Open Font License](assets/brand/genoa/licenses/Newsreader-OFL.txt).

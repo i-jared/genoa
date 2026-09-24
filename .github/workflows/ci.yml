@@ -1,8 +1,9 @@
 name: CI
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -10,8 +11,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend:
+  secrets:
+    name: Secret scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan history with gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz | tar -xz gitleaks
+          ./gitleaks git --redact --no-banner .
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: backend
@@ -19,25 +35,27 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npm run check
-      # The integration suites run against a disposable local Worker, D1 and R2.
+      # Integration suites run against a disposable local Worker, D1 and R2.
       - run: echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)" > .dev.vars
       - run: npm run migrate:local
       - name: Start local Worker
         run: |
           npx wrangler dev --port 8787 > wrangler.log 2>&1 &
-          for i in $(seq 1 60); do curl -sf http://localhost:8787/health && exit 0; sleep 2; done
+          for _ in $(seq 1 60); do curl -sf http://localhost:8787/health && exit 0; sleep 2; done
           cat wrangler.log; exit 1
       - run: npm test
       - if: failure()
-        run: cat wrangler.log
+        run: tail -200 wrangler.log
 
   admin:
+    name: Admin console
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: admin
@@ -45,7 +63,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: admin/package-lock.json
       - run: npm ci
@@ -55,7 +73,9 @@ jobs:
       - run: npm run build
 
   android:
+    name: Android
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: android
@@ -66,15 +86,62 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+      # The Firebase client config isn't committed. Debug builds only need a structurally valid file.
+      - name: Provide Firebase client config
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          else
+            cat > app/google-services.json <<'JSON'
+          {
+            "project_info": { "project_number": "000000000000", "project_id": "genoa-ci", "storage_bucket": "genoa-ci.appspot.com" },
+            "client": [{
+              "client_info": { "mobilesdk_app_id": "1:000000000000:android:0000000000000000", "android_client_info": { "package_name": "app.genoa" } },
+              "oauth_client": [],
+              "api_key": [{ "current_key": "ci-placeholder" }],
+              "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+            }],
+            "configuration_version": "1"
+          }
+          JSON
+          fi
+      - run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-reports
+          path: android/app/build/reports
 
   ios:
+    name: iOS
     runs-on: macos-26
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Unit tests on a simulator
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      # GenoaTests includes integration tests against an isolated local Worker on port 18888.
+      - name: Start isolated test server
         run: |
-          device=$(xcrun simctl list devices available | grep -m1 -o 'iPhone [^(]*' | sed 's/ *$//')
+          ./ios/scripts/test-server.sh > test-server.log 2>&1 &
+          for _ in $(seq 1 60); do curl -sf http://localhost:18888/health && exit 0; sleep 2; done
+          cat test-server.log; exit 1
+      - name: Unit and integration tests
+        run: |
+          device=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = [d for runtime, ds in json.load(sys.stdin)["devices"].items() if "iOS" in runtime for d in ds]
+          print(next(d["udid"] for d in devices if d["name"].startswith("iPhone")))')
           xcodebuild -project ios/Genoa.xcodeproj -scheme Genoa \
-            -destination "platform=iOS Simulator,name=$device" \
-            -only-testing:GenoaTests CODE_SIGNING_ALLOWED=NO test
+            -destination "platform=iOS Simulator,id=$device" \
+            -parallel-testing-enabled NO -only-testing:GenoaTests \
+            CODE_SIGNING_ALLOWED=NO test
+      - if: failure()
+        run: tail -200 test-server.log

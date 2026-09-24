@@ -28,4 +28,4 @@ The earlier Expo, direct presigned-upload, and separate media-service proposals 
 3. Complete accessibility, account recovery, provider/push configuration, operational monitoring, and restore drills.
 4. Publish signed releases with repeatable builds, matching crash symbols, and verified store information.
 
-[Feature status](docs/FEATURES.md) records completed verification. [Production readiness](docs/PRODUCTION-READINESS.md) records unresolved reliability and operating gates. Neither simulator success nor a signed build certifies public-launch readiness.
+[Feature status](docs/FEATURES.md) records verification and the remaining release gates. Neither simulator success nor a signed build certifies public-launch readiness.

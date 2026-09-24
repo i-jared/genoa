@@ -41,3 +41,6 @@ ios/DerivedData/
 .vscode/
 __pycache__/
 *.pyc
+
+# Firebase client config: supplied locally or by CI, never committed
+android/app/google-services.json
