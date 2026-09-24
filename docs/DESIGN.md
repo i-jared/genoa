@@ -372,7 +372,7 @@ Profile is scrollable at large text sizes. Avoid pinning Sign out over the conte
 
 ### Onboarding and invitations
 
-The welcome screen uses the Genoa wordmark, a short purpose statement, and a single primary action appropriate to the state: Sign in or Join Genoa. The existing invitation-gated email/password flow remains. Do not show Apple, Google, username setup, or password recovery controls until their integrations exist.
+The welcome screen uses the Genoa wordmark, a short purpose statement, and a single primary action appropriate to the state: Sign in or Join Genoa. Signup is open email/password (eight characters minimum) with the Terms and Privacy agreement and its links beneath the form. Show **Forgot password?** as a quiet text action under the password field only when the server reports password reset is available; its dialog prefills the email and always confirms neutrally. Show Apple and Google buttons only when the server reports those providers configured. Do not show username setup.
 
 Preserve an incoming conversation invitation through sign-in and show the destination before joining. Invalid, expired, and revoked invitations receive clear messages and a way back. Website identity is talkgenoa.com; current `genoa://` invitation links and the legacy compatible scheme remain supported. HTTPS invitation landing pages and verified Android App Links require separate hosting, association, and release work.
 
@@ -497,7 +497,7 @@ The custom logo and outlined brand lettering are defined in the Genoa identity k
 
 ## Onboarding and recording follow-up — September 22, 2026
 
-This update supersedes the earlier beta-code and required-conversation-name flows. Signup uses email and a minimum six-character password, with an optional name. Configured Google/Apple providers appear above email entry; unavailable providers have no dead buttons.
+This update supersedes the earlier beta-code and required-conversation-name flows. Signup uses email and a minimum eight-character password, with an optional name. Configured Google/Apple providers appear above email entry; unavailable providers have no dead buttons.
 
 Starting a conversation opens contacts and Copy invite link / Share link immediately. Creation needs no name; unnamed conversations display the other participants and can be renamed in details. Invitations use an HTTPS landing page with an Open Genoa action and retain the custom-scheme app handoff.
 

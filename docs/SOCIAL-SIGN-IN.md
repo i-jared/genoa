@@ -1,6 +1,6 @@
 # Google and Apple sign-in
 
-Both native apps use a system browser authentication flow through Better Auth on the Worker. Email signup is open, needs no beta code, and accepts passwords of at least six characters. Names are optional in the app. Google/Apple buttons are hidden unless the corresponding pair of Worker secrets is configured.
+Both native apps use a system browser authentication flow through Better Auth on the Worker. Email signup is open, needs no beta code, and accepts passwords of at least eight characters. Names are optional in the app. Google/Apple buttons are hidden unless the corresponding pair of Worker secrets is configured.
 
 ## Configure when ready
 
@@ -15,6 +15,6 @@ Do not paste secrets into chat or commit `.dev.vars`. Existing email accounts mu
 
 Native apps generate a verifier and send only its SHA-256 challenge to the Worker. The browser callback is bound to a short-lived HttpOnly cookie. Completion returns only an opaque code in `genoa://auth`; exchange requires the native verifier and consumes the code once. Session credentials do not appear in callback URLs. Android persists the pending verifier in encrypted storage to survive process recreation. iOS uses ASWebAuthenticationSession. Existing authorized media/session behavior is preserved.
 
-The local backend suite verifies browser binding, incorrect proofs, single use, expiry and disabled providers. It also verifies open signup and rejection of five-character passwords. Provider-console integration cannot be tested until credentials are supplied. The current implementation does not add password recovery/email delivery.
+The local backend suite verifies browser binding, incorrect proofs, single use, expiry and disabled providers. It also verifies open signup and rejection of passwords shorter than eight characters. Provider-console integration cannot be tested until credentials are supplied. Password reset and email confirmation are separate; see [operations](OPERATIONS.md).
 
 Primary configuration references: [Better Auth Google](https://www.better-auth.com/docs/authentication/google), [Better Auth Apple](https://www.better-auth.com/docs/authentication/apple), [Apple web configuration](https://developer.apple.com/help/account/capabilities/configure-sign-in-with-apple-for-the-web/).

@@ -11,9 +11,11 @@ Record a message, send it to a person or group, and watch or reply when convenie
 | `android/` | Native Android app and tests |
 | `ios/` | Native iOS app, Xcode project, and tests |
 | `backend/` | Workers API, D1 migrations, and integration tests |
+| `admin/` | Moderation and operations console (Next.js on Vercel) |
 | `docs/` | Architecture, design, feature status, and configuration |
 | `assets/` | Canonical brand assets, sources, and font license |
 | `scripts/release/` | Repeatable build and store-asset commands |
+| `scripts/ops/` | Backup and restore drill |
 | `store/` | Listing copy, reviewed screenshots, and demo media |
 | `dist/` | Latest local build outputs; generated and ignored by Git |
 
@@ -48,13 +50,22 @@ Open `ios/Genoa.xcodeproj` in Xcode 26 or later and run the **Genoa** scheme on 
 
 ## Verify changes
 
-Backend tests create disposable local state:
+Backend tests create disposable local state. Start the local Worker (`npm run dev`) first; the moderation/recovery suite reads the local D1 and R2 files to seed an admin and confirm deleted media is gone:
 
 ```sh
 cd backend
 npm run check
 npm test
 ```
+
+Admin console type checks, lint, tests and production build:
+
+```sh
+cd admin
+npm ci && npm run typecheck && npm run lint && npm test && npm run build
+```
+
+`.github/workflows/ci.yml` runs the backend, admin, Android and iOS checks on every push and pull request once the repository has a GitHub remote.
 
 Android build, unit tests, and static checks:
 
@@ -84,7 +95,7 @@ Record what was tested and any remaining device or deployment requirements in [d
 
 The checked-in `backend/wrangler.production.jsonc` identifies the hosted Genoa deployment. For your own deployment, provision separate D1, private R2, Queues, and Durable Object resources and update the configuration before using `npm run migrate:production` or `npm run deploy`. Use your own Firebase client configuration and signing identities for a distributed fork. Android and iOS currently use `app.genoa`.
 
-Set Worker secrets through Wrangler, never in tracked files. Authentication needs `BETTER_AUTH_SECRET`; push uses `FCM_SERVICE_ACCOUNT` and optional `APNS_CREDENTIALS`. See [Google/Apple sign-in setup](docs/SOCIAL-SIGN-IN.md) and [iOS push setup](ios/README.md). Email signup is open; social buttons stay hidden until providers are configured. Password recovery is not implemented.
+Set Worker secrets through Wrangler, never in tracked files. Authentication needs `BETTER_AUTH_SECRET`; push uses `FCM_SERVICE_ACCOUNT` and optional `APNS_CREDENTIALS`. See [Google/Apple sign-in setup](docs/SOCIAL-SIGN-IN.md) and [iOS push setup](ios/README.md). Email signup is open; social buttons stay hidden until providers are configured. Password reset and alert emails need `RESEND_API_KEY` and `EMAIL_FROM`; see [operations](docs/OPERATIONS.md).
 
 Monitor queue failures, storage, AI usage, and database latency. Published messages do not expire automatically; per-message limits are 8 GB and 24 hours. Backup/restore drills, recovery, moderation, and physical-device checks remain [release gates](docs/PRODUCTION-READINESS.md).
 
