@@ -16,7 +16,8 @@ class LiveCapture(
     private val preview: Surface,
     private val directory: File,
     private val onSegment: (File, Int, Double) -> Unit,
-    private val onFinished: (File, Long) -> Unit,
+    /** Called exactly once when capture ends; the file is null when nothing usable was recorded. */
+    private val onFinished: (File?, Long) -> Unit,
     private val onError: (String) -> Unit,
     private val displayRotation: Int,
 ) {
@@ -152,39 +153,51 @@ class LiveCapture(
                                 return
                             }
                             camera = device
-                            @Suppress("DEPRECATION")
-                            device.createCaptureSession(
-                                listOf(preview, inputSurface!!),
-                                object : CameraCaptureSession.StateCallback() {
-                                    override fun onConfigured(s: CameraCaptureSession) {
-                                        if (stopping) {
-                                            s.close()
-                                            return
+                            // Camera services can refuse stream configuration; report it instead of crashing.
+                            try {
+                                @Suppress("DEPRECATION")
+                                device.createCaptureSession(
+                                    listOf(preview, inputSurface!!),
+                                    object : CameraCaptureSession.StateCallback() {
+                                        override fun onConfigured(s: CameraCaptureSession) {
+                                            if (stopping) {
+                                                s.close()
+                                                return
+                                            }
+                                            session = s
+                                            val request =
+                                                device
+                                                    .createCaptureRequest(CameraDevice.TEMPLATE_RECORD)
+                                                    .apply {
+                                                        addTarget(preview)
+                                                        addTarget(inputSurface!!)
+                                                        set(
+                                                            CaptureRequest.CONTROL_AF_MODE,
+                                                            CaptureRequest
+                                                                .CONTROL_AF_MODE_CONTINUOUS_VIDEO,
+                                                        )
+                                                    }
+                                                    .build()
+                                            try {
+                                                s.setRepeatingRequest(request, null, handler)
+                                            } catch (e: Exception) {
+                                                fail("This camera cannot start live recording.")
+                                                return
+                                            }
+                                            handler.postDelayed(requestKeyFrame, 2000)
                                         }
-                                        session = s
-                                        val request =
-                                            device
-                                                .createCaptureRequest(CameraDevice.TEMPLATE_RECORD)
-                                                .apply {
-                                                    addTarget(preview)
-                                                    addTarget(inputSurface!!)
-                                                    set(
-                                                        CaptureRequest.CONTROL_AF_MODE,
-                                                        CaptureRequest
-                                                            .CONTROL_AF_MODE_CONTINUOUS_VIDEO,
-                                                    )
-                                                }
-                                                .build()
-                                        s.setRepeatingRequest(request, null, handler)
-                                        handler.postDelayed(requestKeyFrame, 2000)
-                                    }
-
-                                    override fun onConfigureFailed(s: CameraCaptureSession) {
-                                        fail("This camera cannot start live recording.")
-                                    }
-                                },
-                                handler,
-                            )
+    
+                                        override fun onConfigureFailed(s: CameraCaptureSession) {
+                                            fail("This camera cannot start live recording.")
+                                        }
+                                    },
+                                    handler,
+                                )
+                            } catch (e: Exception) {
+                                android.util.Log.e("GenoaCapture", "Capture session failed", e)
+                                device.close()
+                                fail("This camera cannot start live recording.")
+                            }
                         }
 
                         override fun onDisconnected(device: CameraDevice) {
@@ -364,7 +377,8 @@ class LiveCapture(
         ts?.close()
         if (muxing) runCatching { muxer?.stop() }
         muxer?.release()
-        if (output.exists() && output.length() > 0 && muxing) onFinished(output, lastUs / 1000)
+        val usable = output.exists() && output.length() > 0 && muxing
+        onFinished(if (usable) output else null, lastUs / 1000)
         microphoneThread.quitSafely()
         thread.quitSafely()
     }
@@ -404,37 +418,48 @@ class LivePreview(
                                 return
                             }
                             camera = device
-                            @Suppress("DEPRECATION")
-                            device.createCaptureSession(
-                                listOf(preview),
-                                object : CameraCaptureSession.StateCallback() {
-                                    override fun onConfigured(s: CameraCaptureSession) {
-                                        if (stopped) {
-                                            s.close()
-                                            return
+                            // Camera services can refuse stream configuration; report it instead of crashing.
+                            try {
+                                @Suppress("DEPRECATION")
+                                device.createCaptureSession(
+                                    listOf(preview),
+                                    object : CameraCaptureSession.StateCallback() {
+                                        override fun onConfigured(s: CameraCaptureSession) {
+                                            if (stopped) {
+                                                s.close()
+                                                return
+                                            }
+                                            session = s
+                                            val request =
+                                                device
+                                                    .createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+                                                    .apply {
+                                                        addTarget(preview)
+                                                        set(
+                                                            CaptureRequest.CONTROL_AF_MODE,
+                                                            CaptureRequest
+                                                                .CONTROL_AF_MODE_CONTINUOUS_PICTURE,
+                                                        )
+                                                    }
+                                                    .build()
+                                            try {
+                                                s.setRepeatingRequest(request, null, handler)
+                                            } catch (e: Exception) {
+                                                onError("Camera preview could not start.")
+                                            }
                                         }
-                                        session = s
-                                        val request =
-                                            device
-                                                .createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-                                                .apply {
-                                                    addTarget(preview)
-                                                    set(
-                                                        CaptureRequest.CONTROL_AF_MODE,
-                                                        CaptureRequest
-                                                            .CONTROL_AF_MODE_CONTINUOUS_PICTURE,
-                                                    )
-                                                }
-                                                .build()
-                                        s.setRepeatingRequest(request, null, handler)
-                                    }
-
-                                    override fun onConfigureFailed(s: CameraCaptureSession) {
-                                        onError("Camera preview could not start.")
-                                    }
-                                },
-                                handler,
-                            )
+    
+                                        override fun onConfigureFailed(s: CameraCaptureSession) {
+                                            onError("Camera preview could not start.")
+                                        }
+                                    },
+                                    handler,
+                                )
+                            } catch (e: Exception) {
+                                android.util.Log.e("GenoaCapture", "Capture session failed", e)
+                                device.close()
+                                onError("Camera preview could not start.")
+                            }
                         }
 
                         override fun onDisconnected(device: CameraDevice) {

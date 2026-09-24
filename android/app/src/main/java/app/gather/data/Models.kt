@@ -82,6 +82,8 @@ enum class DraftState {
     UPLOADING,
     FAILED,
     SENT,
+    /** Terminal: the person discarded it. Kept only until the server confirms deletion. */
+    DISCARDED,
 }
 
 data class Draft(

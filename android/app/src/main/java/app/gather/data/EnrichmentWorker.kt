@@ -60,7 +60,7 @@ class EnrichmentWorker(context: Context, params: WorkerParameters) :
                     file.delete()
                     return@withContext Result.success()
                 }
-                repo.drafts.save(
+                repo.drafts.update(
                     draft.copy(
                         error = "Message sent. Caption preparation or gallery saving will retry."
                     )

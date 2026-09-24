@@ -43,7 +43,6 @@ class MainActivity : ComponentActivity() {
                 val vm: GenoaViewModel = viewModel()
                 val state by vm.state.collectAsStateWithLifecycle()
                 var live by remember { mutableStateOf(false) }
-                var startLiveOnOpen by remember { mutableStateOf(false) }
                 var settings by rememberSaveable { mutableStateOf(false) }
                 var recorder by remember { mutableStateOf<Boolean?>(null) }
                 var reply by remember { mutableStateOf<String?>(null) }
@@ -120,7 +119,8 @@ class MainActivity : ComponentActivity() {
                     recorder = audio
                     reply = target
                 }
-                fun shareLive(target: String?, startImmediately: Boolean = false) {
+                // Opens preflight; sharing starts only from its explicit Start sharing live action.
+                fun shareLive(target: String?) {
                     stopService(
                         android.content.Intent(
                             this@MainActivity,
@@ -129,7 +129,6 @@ class MainActivity : ComponentActivity() {
                     )
                     reply = target
                     vm.replyMode(true)
-                    startLiveOnOpen = startImmediately
                     live = true
                 }
                 LaunchedEffect(state.selected?.id) { focusId = null }
@@ -245,7 +244,6 @@ class MainActivity : ComponentActivity() {
                                         vm,
                                         reply,
                                         focusId,
-                                        startOnOpen = startLiveOnOpen,
                                         onWatch = { id ->
                                             vm.replyMode(false)
                                             focusId = id
@@ -279,9 +277,7 @@ class MainActivity : ComponentActivity() {
                                             focusId,
                                             onFocus = { focusId = it },
                                             onRecord = { audio, target -> record(audio, target) },
-                                            onLive = { target ->
-                                                shareLive(target, startImmediately = true)
-                                            },
+                                            onLive = { target -> shareLive(target) },
                                             onClose = {
                                                 focusId = null
                                                 vm.back()

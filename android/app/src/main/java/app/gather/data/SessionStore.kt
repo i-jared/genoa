@@ -126,6 +126,16 @@ class SessionStore(context: Context) {
             prefs.edit().putString("user_id", value).apply()
         }
 
+    /**
+     * Server-provided reason the session ended (for example a suspension). Persisted so a
+     * background upload that learns of it still explains the sign-in screen on next launch.
+     */
+    var signedOutNotice: String?
+        get() = prefs.getString("signed_out_notice", null)
+        set(value) {
+            prefs.edit().putString("signed_out_notice", value?.take(500)).apply()
+        }
+
     var autoSave: Boolean
         get() = prefs.getBoolean("auto_save", false)
         set(value) {

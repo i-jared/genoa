@@ -113,6 +113,20 @@ fun SettingsScreen(vm: GenoaViewModel, state: AppState, onBack: () -> Unit) {
                 )
             }
             ProfileGroup("Account", "profile") { AccountControls(vm, onBack) }
+            ProfileGroup("Help and policies", "info") {
+                val base = vm.repo.session.baseUrl
+                listOf("Support" to "support", "Terms" to "terms", "Privacy Policy" to "privacy")
+                    .forEach { (label, page) ->
+                        TextButton(
+                            { uriHandler.openUri(serverPage(base, page)) },
+                            Modifier.heightIn(min = 48.dp),
+                        ) {
+                            Text(label)
+                            Spacer(Modifier.width(8.dp))
+                            GenoaIcon("external", null)
+                        }
+                    }
+            }
             ProfileGroup("About Genoa", "info") {
                 GenoaBrand(size = 32.dp, style = MaterialTheme.typography.titleLarge)
                 Text(

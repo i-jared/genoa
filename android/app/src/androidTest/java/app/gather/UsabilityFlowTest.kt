@@ -70,7 +70,7 @@ class UsabilityFlowTest {
             }
             screenshot("after-recording")
             compose.onNodeWithContentDescription("Close recorder").performClick()
-            waitDescription("Record")
+            waitDescription("Go live")
             compose.onNodeWithContentDescription("Pause").assertDoesNotExist()
         }
     }

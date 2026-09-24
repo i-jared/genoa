@@ -60,7 +60,7 @@ class GenoaFlowTest {
         }
         compose.onNodeWithText("The weekend crew").performClick()
         compose.waitUntil(10_000) {
-            compose.onAllNodesWithContentDescription("Record").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithContentDescription("Go live").fetchSemanticsNodes().isNotEmpty()
         }
         return repo to cid
     }
@@ -134,7 +134,13 @@ class GenoaFlowTest {
     @Test
     fun liveCapturePublishesSegmentsAndKeepsReplay() {
         val (repo, cid) = setup()
-        compose.onNodeWithContentDescription("Record").performClick()
+        compose.onNodeWithContentDescription("Go live").performClick()
+        // Go live opens preflight; nobody can watch until the explicit start.
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithContentDescription("Start sharing live").fetchSemanticsNodes().isNotEmpty()
+        }
+        assertTrue("Opening preflight must not start sharing", runBlocking { repo.messages(cid).isEmpty() })
+        compose.onNodeWithContentDescription("Start sharing live").performClick()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithContentDescription("Stop recording").fetchSemanticsNodes().isNotEmpty()
         }
@@ -180,14 +186,14 @@ class GenoaFlowTest {
         compose.onNodeWithText("Choose a conversation").assertExists()
         compose.onAllNodesWithText("The weekend crew").onLast().performClick()
         compose.waitUntil(10000) {
-            compose.onAllNodesWithContentDescription("Record").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithContentDescription("Start sharing live").fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithText("To: The weekend crew").assertExists()
-        compose.onNodeWithContentDescription("Record").assertExists()
+        compose.onNodeWithContentDescription("Start sharing live").assertExists()
         assertTrue("Choosing a recipient must not start sharing", runBlocking { repo.messages(cid).isEmpty() })
         screenshot("recorder")
         compose.onNodeWithContentDescription("Close").performClick()
-        compose.onNodeWithContentDescription("Record").assertExists()
+        compose.onNodeWithContentDescription("Go live").assertExists()
         screenshot("thread")
     }
 

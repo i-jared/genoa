@@ -8,7 +8,10 @@ import android.view.TextureView
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.*
@@ -17,7 +20,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -29,16 +36,18 @@ import app.gather.media.VideoRotation
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
 
 private sealed class LivePhase {
     data class Preflight(val allowed: Boolean, val surfaceReady: Boolean) : LivePhase()
 
     data object Establishing : LivePhase()
 
-    data class Sharing(val elapsedMs: Long, val paused: Boolean) : LivePhase()
+    data class Sharing(val elapsedMs: Long) : LivePhase()
 
     data object Ending : LivePhase()
+
+    /** Sharing is over but something needs the person's attention before leaving. */
+    data class Ended(val message: String, val canRetry: Boolean) : LivePhase()
 }
 
 @Composable
@@ -48,7 +57,6 @@ fun LiveScreen(
     focusId: String? = null,
     onWatch: (String) -> Unit,
     onRecord: (Boolean, String?) -> Unit,
-    startOnOpen: Boolean = false,
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -76,11 +84,14 @@ fun LiveScreen(
             )
         )
     }
-    // A reply tap is a start request, even while the new camera surface is being created.
-    var startRequested by remember { mutableStateOf(startOnOpen) }
+    // Start sharing live is a request that waits for permissions and the camera surface.
+    var startRequested by remember { mutableStateOf(false) }
     var permissionRequested by remember { mutableStateOf(false) }
     var captureError by remember { mutableStateOf<String?>(null) }
-    var finalizationJob by remember { mutableStateOf<Job?>(null) }
+    // Set once the server may know about this live message; it must then be ended durably.
+    var sessionStarted by remember { mutableStateOf(false) }
+    val uplink by vm.repo.live.states.collectAsState()
+    val uplinkState = uplink[id]
     val permission =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             val current = phase
@@ -96,41 +107,6 @@ fun LiveScreen(
                 }
             }
         }
-    data class Segment(val file: File, val number: Int, val seconds: Double)
-    val segments = remember { Channel<Segment>(Channel.UNLIMITED) }
-    val sender = remember {
-        scope.launch(Dispatchers.IO) {
-            for (segment in segments) {
-                var sent = false
-                var attempt = 0
-                while (!sent && isActive) {
-                    try {
-                        vm.repo.api.putBytes(
-                            "/api/live/$id/segments/${segment.number}?duration=${segment.seconds}",
-                            segment.file.readBytes(),
-                        )
-                        sent = true
-                        withContext(Dispatchers.Main) {
-                            val current = phase
-                            if (current is LivePhase.Sharing && current.paused) {
-                                phase = current.copy(paused = false)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        if (e is CancellationException) throw e
-                        attempt++
-                        withContext(Dispatchers.Main) {
-                            val current = phase
-                            if (current is LivePhase.Sharing) {
-                                phase = current.copy(paused = true)
-                            }
-                        }
-                        delay(minOf(10000L, attempt * 1000L))
-                    }
-                }
-            }
-        }
-    }
     LaunchedEffect(phase is LivePhase.Sharing) {
         val sharing = phase as? LivePhase.Sharing ?: return@LaunchedEffect
         val start = System.currentTimeMillis() - sharing.elapsedMs
@@ -161,48 +137,34 @@ fun LiveScreen(
     DisposableEffect(Unit) {
         onDispose {
             preview?.stop()
+            // Stopping capture reports the replay to LiveUplink, which finishes without this screen.
             capture?.stop()
-            segments.close()
+            if (sessionStarted && capture == null) vm.repo.live.finish(id, cid, null, 0)
             vm.recording(false)
         }
     }
-    fun finishWithReplay(file: File, durationMs: Long) {
-        if (finalizationJob != null) return
-        phase = LivePhase.Ending
-        finalizationJob =
-            scope.launch {
-                segments.close()
-                withTimeoutOrNull(10_000) { sender.join() }
-                sender.cancel()
-                val draft =
-                    vm.repo
-                        .saveDraft(cid, file, "video", "video/mp4", durationMs, null)
-                        .copy(id = id)
-                withContext(Dispatchers.IO) {
-                    vm.repo.drafts
-                        .all()
-                        .filter { it.file == file.absolutePath && it.id != id }
-                        .forEach { vm.repo.drafts.remove(it.id) }
-                    vm.repo.drafts.save(draft)
-                }
-                vm.repo.enqueue(draft)
-                runCatching { vm.repo.api.json("POST", "/api/live/$id/end") }
-                onClose()
-            }
+
+    // Distribution stopped for a reason retrying cannot fix: stop capture and keep the replay.
+    LaunchedEffect(uplinkState) {
+        val stopped = uplinkState as? LiveUplinkState.Stopped ?: return@LaunchedEffect
+        if (phase is LivePhase.Sharing) {
+            captureError = stopped.message
+            phase = LivePhase.Ending
+            capture?.stop()
+        }
     }
 
-    fun finishWithoutReplay() {
-        if (finalizationJob != null) return
-        phase = LivePhase.Ending
-        finalizationJob =
-            scope.launch {
-                segments.close()
-                withTimeoutOrNull(10_000) { sender.join() }
-                sender.cancel()
-                withContext(Dispatchers.IO) { vm.repo.drafts.remove(id) }
-                runCatching { vm.repo.api.json("POST", "/api/live/$id/end") }
-                onClose()
+    LaunchedEffect(uplinkState, phase) {
+        if (phase != LivePhase.Ending) return@LaunchedEffect
+        when (val result = uplinkState) {
+            is LiveUplinkState.Finalized -> {
+                val notice = result.notice ?: captureError
+                if (notice == null) onClose() else phase = LivePhase.Ended(notice, canRetry = false)
             }
+            is LiveUplinkState.FinalizeFailed ->
+                phase = LivePhase.Ended(result.message, canRetry = true)
+            else -> Unit
+        }
     }
 
     fun endSharing() {
@@ -219,61 +181,86 @@ fun LiveScreen(
         preview = null
         phase = LivePhase.Establishing
         captureError = null
-        vm.run {
-            var sessionAccepted = false
+        scope.launch {
             try {
                 withContext(Dispatchers.IO) { previousPreview?.stop() }
+                // Recorded before the request so an interrupted start is still ended later.
+                withContext(Dispatchers.IO) {
+                    vm.repo.live.begin(
+                        LocalLiveSession(id, cid, vm.repo.session.userId, false, directory.absolutePath)
+                    )
+                }
+                sessionStarted = true
                 vm.repo.api.json(
                     "POST",
                     "/api/conversations/$cid/live",
                     json("id" to id, "rotation" to rotation),
                 )
-                sessionAccepted = true
-                val local =
-                    vm.repo.saveDraft(
-                        cid,
-                        File(directory, "recording.mp4"),
-                        "video",
-                        "video/mp4",
-                        0,
-                        null,
-                    )
                 withContext(Dispatchers.IO) {
-                    vm.repo.drafts.remove(local.id)
-                    vm.repo.drafts.save(local.copy(id = id))
+                    vm.repo.drafts.save(
+                        Draft(
+                            id,
+                            cid,
+                            File(directory, "recording.mp4").absolutePath,
+                            "video",
+                            "video/mp4",
+                            0,
+                            null,
+                            DraftState.SAVED,
+                            0,
+                            null,
+                            System.currentTimeMillis(),
+                            vm.repo.session.userId,
+                        )
+                    )
                 }
                 check(surface === targetSurface && targetSurface.isValid) {
                     "Camera preview became unavailable. Try sharing again."
                 }
+                var started: LiveCapture? = null
                 val liveCapture =
                     LiveCapture(
                         context,
                         targetSurface,
                         directory,
                         { file, number, seconds ->
-                            segments.trySend(Segment(file, number, seconds))
+                            val offer = vm.repo.live.offer(id, file, number, seconds)
+                            liveOfferMessage(offer)?.let { message ->
+                                scope.launch {
+                                    captureError = message
+                                    if (phase is LivePhase.Sharing) phase = LivePhase.Ending
+                                }
+                                started?.stop()
+                            }
                         },
-                        { file, durationMs -> scope.launch { finishWithReplay(file, durationMs) } },
+                        { file, durationMs -> vm.repo.live.finish(id, cid, file, durationMs) },
                         { error ->
                             scope.launch {
                                 captureError = error
-                                phase = LivePhase.Ending
-                                delay(3_000)
-                                finishWithoutReplay()
+                                if (phase is LivePhase.Sharing) phase = LivePhase.Ending
                             }
                         },
                         displayRotation,
                     )
+                started = liveCapture
                 capture = liveCapture
                 liveCapture.start()
                 vm.recording(true)
-                phase = LivePhase.Sharing(elapsedMs = 0, paused = false)
+                phase = LivePhase.Sharing(elapsedMs = 0)
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 captureError = error.message ?: "Could not start live sharing."
-                if (sessionAccepted) {
-                    withContext(Dispatchers.IO) { vm.repo.drafts.remove(id) }
-                    runCatching { vm.repo.api.json("POST", "/api/live/$id/end") }
-                    onClose()
+                if (sessionStarted) {
+                    if (error is ApiException) {
+                        // The server refused the session, so there is nothing to end.
+                        withContext(Dispatchers.IO) { vm.repo.live.abandon(id) }
+                        sessionStarted = false
+                        phase = LivePhase.Preflight(allowed = true, surfaceReady = surface != null)
+                    } else {
+                        vm.repo.live.finish(id, cid, null, 0)
+                        phase = LivePhase.Ending
+                    }
                 } else {
                     phase = LivePhase.Preflight(allowed = true, surfaceReady = surface != null)
                 }
@@ -296,22 +283,20 @@ fun LiveScreen(
         }
     }
 
-    BackHandler {
+    // Finalization belongs to LiveUplink, so leaving while it runs loses nothing.
+    fun close() {
         when (phase) {
-            is LivePhase.Preflight -> onClose()
+            is LivePhase.Preflight,
+            is LivePhase.Ended,
+            LivePhase.Ending -> onClose()
             is LivePhase.Sharing -> endSharing()
-            LivePhase.Establishing,
-            LivePhase.Ending -> Unit
+            LivePhase.Establishing -> Unit
         }
     }
+    BackHandler { close() }
 
     val foreground = Color(0xFFEDEFE9)
-    val closeLabel =
-        if (phase is LivePhase.Sharing || phase is LivePhase.Ending) {
-            "End live sharing"
-        } else {
-            "Close"
-        }
+    val closeLabel = if (phase is LivePhase.Sharing) "End live sharing" else "Close"
     ImmersiveChrome(
         policy = ChromePolicy.Persistent,
         screenDescription = "Live sharing",
@@ -393,32 +378,36 @@ fun LiveScreen(
             ) {
                 ChromeIconButton(
                     label = closeLabel,
-                    onClick = {
-                        when (phase) {
-                            is LivePhase.Preflight -> onClose()
-                            is LivePhase.Sharing -> endSharing()
-                            LivePhase.Establishing,
-                            LivePhase.Ending -> Unit
-                        }
-                    },
-                    enabled = phase is LivePhase.Preflight || phase is LivePhase.Sharing,
+                    onClick = ::close,
+                    enabled = phase != LivePhase.Establishing,
                 ) {
                     GenoaIcon("close", null, tint = foreground)
                 }
                 when (val current = phase) {
                     is LivePhase.Sharing ->
-                        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "SHARING LIVE",
-                                color = foreground,
-                                style = MaterialTheme.typography.labelLarge,
-                            )
-                            Text(
-                                " · ${duration(current.elapsedMs)}",
-                                Modifier.clearAndSetSemantics {},
-                                color = foreground,
-                                style = MaterialTheme.typography.labelLarge,
-                            )
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            // Filled coral badge with text: sharing state never relies on color alone.
+                            Row(
+                                Modifier.background(Capture, RoundedCornerShape(50))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    .testTag("sharing-live"),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(Modifier.size(8.dp).background(AvatarInk, CircleShape))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "SHARING LIVE",
+                                    Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                                    color = AvatarInk,
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                                Text(
+                                    " · ${duration(current.elapsedMs)}",
+                                    Modifier.clearAndSetSemantics {},
+                                    color = AvatarInk,
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                            }
                         }
                     else -> Spacer(Modifier.weight(1f))
                 }
@@ -438,19 +427,43 @@ fun LiveScreen(
                     color = foreground,
                     style = MaterialTheme.typography.titleMedium,
                 )
-                if (current is LivePhase.Sharing && current.paused)
+                if (current is LivePhase.Sharing && uplinkState is LiveUplinkState.Paused)
                     Text(
-                        "Live connection paused.",
+                        "Live connection paused. Recording continues on this phone; viewers catch up when it reconnects.",
                         color = Color(0xFFFFB4AB),
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                captureError?.let {
-                    Text(it, color = Color(0xFFFFB4AB), style = MaterialTheme.typography.bodyMedium)
+                val notice = (current as? LivePhase.Ended)?.message ?: captureError
+                notice?.let {
+                    Text(
+                        it,
+                        Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        color = Color(0xFFFFB4AB),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
                 when (current) {
                     LivePhase.Establishing -> MediaLoading("Starting live sharing…")
                     LivePhase.Ending -> MediaLoading("Saving your recording…")
                     else -> Unit
+                }
+                if (current is LivePhase.Ended) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (current.canRetry)
+                            Button({
+                                phase = LivePhase.Ending
+                                vm.repo.live.retryFinish(id)
+                            }) {
+                                Text("Try again")
+                            }
+                        OutlinedButton(onClose) { Text("Back to conversation", color = foreground) }
+                    }
+                    if (current.canRetry)
+                        Text(
+                            "If you leave, the recording stays in this conversation as a draft you can send or discard.",
+                            color = foreground,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                 }
                 if (current is LivePhase.Preflight) {
                     MessageFilmstrip(
@@ -466,6 +479,12 @@ fun LiveScreen(
                         loadingNewer = state.loadingNewer,
                         onLater = vm::loadNewer,
                     )
+                    // Consent: nobody can watch until this explicit, labeled action.
+                    Text(
+                        "Start sharing live when you’re ready. Everyone in ${state.selected?.title.orEmpty()} can watch as you record, and the replay stays in the conversation.",
+                        color = foreground,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                     if (startRequested) MediaLoading("Starting live sharing…")
                     ReplyComposer(
                         vm,
@@ -474,25 +493,20 @@ fun LiveScreen(
                         onLive = { startRequested = true },
                         light = true,
                         recordEnabled = !startRequested,
+                        recordLabel = "Start sharing live",
                     )
-                } else
+                } else if (current !is LivePhase.Ended)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         FilledIconButton(
                             onClick = {
-                                when (current) {
-                                    is LivePhase.Preflight -> startSharing()
-                                    is LivePhase.Sharing -> endSharing()
-                                    LivePhase.Establishing,
-                                    LivePhase.Ending -> Unit
-                                }
+                                if (current is LivePhase.Sharing) endSharing()
                             },
                             enabled =
                                 when (current) {
                                     is LivePhase.Preflight ->
                                         !current.allowed || current.surfaceReady
                                     is LivePhase.Sharing -> true
-                                    LivePhase.Establishing,
-                                    LivePhase.Ending -> false
+                                    else -> false
                                 },
                             modifier = Modifier.size(64.dp),
                             colors =
@@ -507,7 +521,7 @@ fun LiveScreen(
                         ) {
                             if (current is LivePhase.Sharing || current is LivePhase.Ending)
                                 Icon(Icons.Outlined.Stop, "Stop recording")
-                            else GenoaIcon("video", "Record")
+                            else GenoaIcon("video", "Start sharing live")
                         }
                     }
             }

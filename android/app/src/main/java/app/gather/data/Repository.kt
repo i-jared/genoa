@@ -19,6 +19,24 @@ import org.json.JSONArray
 class Repository(private val context: Context, val api: Api = Api(SessionStore(context))) {
     val session = api.session
     val drafts = DraftStore(context)
+    private val transport =
+        object : UploadTransport {
+            override suspend fun call(method: String, path: String, body: org.json.JSONObject?) =
+                api.call(method, path, body)
+
+            override suspend fun putBytes(path: String, data: ByteArray) = api.putBytes(path, data)
+        }
+    val uploader = DraftUploader(drafts, transport, onSent = { enrich(it) })
+    // Live delivery outlives the live screen; WorkManager finishes it after process death.
+    private val liveScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    val live =
+        LiveUplink(
+            drafts,
+            transport,
+            liveScope,
+            scheduleDrain = ::scheduleLiveDrain,
+            deliverReplay = ::deliverLiveReplay,
+        )
     private val progressWrites = Mutex()
     private val progressSync = Mutex()
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -203,6 +221,8 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
     suspend fun recoverDrafts() =
         withContext(Dispatchers.IO) {
             if (drafts.watchProgress(progressAccount).any { it.dirty }) scheduleWatchProgress()
+            if (drafts.discarded().any { it.ownerId == session.userId }) scheduleDiscardReconcile()
+            live.unfinished(session.userId).forEach { scheduleLiveDrain(it.id) }
             drafts
                 .all()
                 .filter { it.ownerId == session.userId }
@@ -230,11 +250,11 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
                                 android.media.MediaMetadataRetriever.METADATA_KEY_DURATION
                             )
                             ?.toLongOrNull() ?: 0
-                    drafts.save(
+                    drafts.update(
                         draft.copy(durationMs = duration, state = DraftState.SAVED, error = null)
                     )
                 } catch (_: Exception) {
-                    drafts.save(
+                    drafts.update(
                         draft.copy(
                             state = DraftState.FAILED,
                             error =
@@ -460,30 +480,22 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
             require(mime in listOf("video/mp4", "image/jpeg", "image/png", "audio/mp4")) {
                 "Please choose an MP4 video, M4A audio, JPEG, or PNG photo"
             }
+            val kind =
+                if (mime.startsWith("image")) "photo"
+                else if (mime.startsWith("audio")) "audio" else "video"
             val directory = File(context.filesDir, "drafts").apply { mkdirs() }
+            ImportLimits.checkDeclaredSize(declaredSize(uri), directory.usableSpace)
+            // Reject unplayable media from the provider before copying gigabytes of it.
+            val duration = if (kind == "photo") 0L else checkPlayable(uri, kind)
+            if (kind == "photo") checkImage(uri)
             val file = File(directory, UUID.randomUUID().toString())
             try {
-                context.contentResolver.openInputStream(uri)!!.use { input ->
-                    file.outputStream().use { input.copyTo(it) }
+                val input =
+                    context.contentResolver.openInputStream(uri)
+                        ?: throw ImportRejected("This file is no longer available.")
+                input.use { source ->
+                    file.outputStream().use { copyWithinLimits(source, it, { directory.usableSpace }) }
                 }
-                val kind =
-                    if (mime.startsWith("image")) "photo"
-                    else if (mime.startsWith("audio")) "audio" else "video"
-                val duration =
-                    if (kind == "photo") 0L
-                    else {
-                        val retriever = android.media.MediaMetadataRetriever()
-                        try {
-                            retriever.setDataSource(file.absolutePath)
-                            retriever
-                                .extractMetadata(
-                                    android.media.MediaMetadataRetriever.METADATA_KEY_DURATION
-                                )
-                                ?.toLongOrNull() ?: 0L
-                        } finally {
-                            retriever.release()
-                        }
-                    }
                 saveDraft(cid, file, kind, mime, duration, reply)
             } catch (e: Exception) {
                 file.delete()
@@ -491,11 +503,63 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
             }
         }
 
+    private fun declaredSize(uri: Uri): Long? =
+        runCatching {
+                context.contentResolver
+                    .query(uri, arrayOf(android.provider.OpenableColumns.SIZE), null, null, null)
+                    ?.use { c ->
+                        if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else null
+                    }
+            }
+            .getOrNull()
+
+    /** Returns the duration, or throws [ImportRejected] with the reason it can't be sent. */
+    private fun checkPlayable(uri: Uri, kind: String): Long {
+        val extractor = android.media.MediaExtractor()
+        val tracks =
+            try {
+                extractor.setDataSource(context, uri, null)
+                (0 until extractor.trackCount).mapNotNull {
+                    extractor.getTrackFormat(it).getString(android.media.MediaFormat.KEY_MIME)
+                }
+            } catch (_: Exception) {
+                emptyList()
+            } finally {
+                extractor.release()
+            }
+        val retriever = android.media.MediaMetadataRetriever()
+        val duration =
+            try {
+                retriever.setDataSource(context, uri)
+                retriever
+                    .extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+                    ?.toLongOrNull()
+            } catch (_: Exception) {
+                null
+            } finally {
+                retriever.release()
+            }
+        importProblem(kind, tracks, duration)?.let { throw ImportRejected(it) }
+        return duration!!
+    }
+
+    private fun checkImage(uri: Uri) {
+        val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        runCatching {
+            context.contentResolver.openInputStream(uri)?.use {
+                android.graphics.BitmapFactory.decodeStream(it, null, bounds)
+            }
+        }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0)
+            throw ImportRejected("Genoa can’t open this photo. Choose a JPEG or PNG image.")
+    }
+
     suspend fun enqueue(draft: Draft) =
         withContext(Dispatchers.IO) {
             val current = drafts.get(draft.id) ?: return@withContext
             if (current.state in listOf(DraftState.SAVED, DraftState.FAILED))
-                drafts.save(current.copy(state = DraftState.QUEUED, error = null))
+                if (!drafts.update(current.copy(state = DraftState.QUEUED, error = null)))
+                    return@withContext
             val request =
                 OneTimeWorkRequestBuilder<UploadWorker>()
                     .setInputData(workDataOf("draft_id" to draft.id))
@@ -528,19 +592,77 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
             )
     }
 
+    /**
+     * Discard is durable before anything else happens: the tombstone stops the worker and every
+     * late write, and [reconcileDiscards] keeps deleting the server copy until it is confirmed.
+     */
     suspend fun discard(draft: Draft) {
-        WorkManager.getInstance(context).cancelUniqueWork("upload:${draft.id}")
-        if (draft.state != DraftState.SAVED) {
-            try {
-                api.call("DELETE", "/api/messages/${draft.id}")
-            } catch (e: ApiException) {
-                if (e.status != 404) throw e
-            }
+        uploader.discard(draft.id) {
+            WorkManager.getInstance(context).cancelUniqueWork("upload:${draft.id}").await()
         }
-        withContext(Dispatchers.IO) {
-            File(draft.file).delete()
-            drafts.remove(draft.id)
-        }
+        scheduleDiscardReconcile()
+    }
+
+    suspend fun reconcileDiscards(): Boolean =
+        session.userId.isBlank() || session.token == null || uploader.reconcileDiscards(session.userId)
+
+    fun scheduleDiscardReconcile() {
+        WorkManager.getInstance(context)
+            .enqueueUniqueWork(
+                "discard-reconcile",
+                ExistingWorkPolicy.REPLACE,
+                OneTimeWorkRequestBuilder<DiscardWorker>()
+                    .setConstraints(
+                        Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+                    )
+                    .setBackoffCriteria(
+                        BackoffPolicy.EXPONENTIAL,
+                        30,
+                        java.util.concurrent.TimeUnit.SECONDS,
+                    )
+                    .build(),
+            )
+    }
+
+    fun scheduleLiveDrain(id: String) {
+        WorkManager.getInstance(context)
+            .enqueueUniqueWork(
+                "live-end:$id",
+                ExistingWorkPolicy.KEEP,
+                OneTimeWorkRequestBuilder<LiveEndWorker>()
+                    .setInputData(workDataOf("message_id" to id))
+                    .setConstraints(
+                        Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+                    )
+                    .setBackoffCriteria(
+                        BackoffPolicy.EXPONENTIAL,
+                        15,
+                        java.util.concurrent.TimeUnit.SECONDS,
+                    )
+                    .build(),
+            )
+    }
+
+    /** Saves the live replay under the live message's stable ID and queues its upload. */
+    private suspend fun deliverLiveReplay(id: String, cid: String, file: File, durationMs: Long) {
+        val existing = withContext(Dispatchers.IO) { drafts.get(id) }
+        val draft =
+            Draft(
+                id,
+                cid,
+                file.absolutePath,
+                "video",
+                "video/mp4",
+                durationMs,
+                null,
+                DraftState.SAVED,
+                0,
+                null,
+                existing?.createdAt ?: System.currentTimeMillis(),
+                session.userId,
+            )
+        // save() refuses a discard tombstone, so a replay the person discarded stays discarded.
+        if (withContext(Dispatchers.IO) { drafts.save(draft) }) enqueue(draft)
     }
 
     suspend fun export(message: Message) =
@@ -575,7 +697,15 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
                 .all()
                 .filter { it.ownerId == session.userId }
                 .forEach {
-                    File(it.file).delete()
+                    deleteDraftMedia(it.file)
+                    drafts.remove(it.id)
+                }
+            // The server deleted the account's messages; its tombstones need no reconciliation.
+            drafts
+                .discarded()
+                .filter { it.ownerId == session.userId }
+                .forEach {
+                    deleteDraftMedia(it.file)
                     drafts.remove(it.id)
                 }
         }

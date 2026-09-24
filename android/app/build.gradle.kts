@@ -1,4 +1,6 @@
-plugins { id("com.google.gms.google-services"); id("com.android.application"); id("org.jetbrains.kotlin.android"); id("org.jetbrains.kotlin.plugin.compose") }
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
+
+plugins { id("com.google.gms.google-services"); id("com.android.application"); id("org.jetbrains.kotlin.android"); id("org.jetbrains.kotlin.plugin.compose"); id("com.google.firebase.crashlytics") }
 val releaseSigningNames = listOf("GENOA_KEYSTORE", "GENOA_KEYSTORE_PASSWORD", "GENOA_KEY_ALIAS", "GENOA_KEY_PASSWORD")
 val releaseSigning = releaseSigningNames.associateWith { providers.environmentVariable(it).orNull }
 require(releaseSigning.values.all { it == null } || releaseSigning.values.all { !it.isNullOrBlank() }) {
@@ -7,7 +9,9 @@ require(releaseSigning.values.all { it == null } || releaseSigning.values.all { 
 android {
     namespace = "app.gather"
     compileSdk = 36
-    defaultConfig { applicationId = "app.genoa"; minSdk = 29; targetSdk = 36; versionCode = 13; versionName = "0.2.9"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
+    defaultConfig { applicationId = "app.genoa"; minSdk = 29; targetSdk = 36; versionCode = 14; versionName = "0.2.10"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Crash reports come only from release builds; debug and test runs never report.
+        manifestPlaceholders["crashlyticsCollectionEnabled"] = "false" }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
@@ -19,9 +23,14 @@ android {
             keyPassword = releaseSigning.getValue("GENOA_KEY_PASSWORD")
         }
     }
-    buildTypes { release {
-        signingConfig = signingConfigs.findByName("production")
-        isMinifyEnabled = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") } }
+    buildTypes {
+        debug { configure<CrashlyticsExtension> { mappingFileUploadEnabled = false } }
+        release {
+            signingConfig = signingConfigs.findByName("production")
+            manifestPlaceholders["crashlyticsCollectionEnabled"] = "true"
+            // Uploads the R8 mapping so release stack traces are readable in Crashlytics.
+            configure<CrashlyticsExtension> { mappingFileUploadEnabled = true }
+            isMinifyEnabled = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") } }
 }
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2025.09.01"))
@@ -45,7 +54,10 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("com.google.firebase:firebase-messaging:24.1.2")
+    implementation("com.google.firebase:firebase-crashlytics:19.4.2")
     testImplementation("junit:junit:4.13.2")
+    // The Android stub of org.json throws in local unit tests.
+    testImplementation("org.json:json:20250517")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test:rules:1.6.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

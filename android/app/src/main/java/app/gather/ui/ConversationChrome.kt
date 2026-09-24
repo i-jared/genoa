@@ -56,6 +56,7 @@ fun ReactionRail(
 fun CenteredRecordActions(
     onRecord: () -> Unit,
     enabled: Boolean = true,
+    label: String = "Go live",
     options: @Composable () -> Unit,
 ) {
     Row(
@@ -66,7 +67,7 @@ fun CenteredRecordActions(
         Box(Modifier.width(48.dp)) { options() }
         Spacer(Modifier.width(8.dp))
         FilledIconButton(onRecord, Modifier.size(56.dp), enabled = enabled) {
-            GenoaIcon("video", "Record")
+            GenoaIcon("video", label)
         }
         Spacer(Modifier.width(56.dp))
     }
@@ -96,6 +97,8 @@ fun ReplyComposer(
     light: Boolean = false,
     onComposing: (Boolean) -> Unit = {},
     recordEnabled: Boolean = true,
+    /** The camera action opens live preflight ("Go live"); only preflight starts sharing. */
+    recordLabel: String = "Go live",
 ) {
     var text by rememberSaveable { mutableStateOf("") }
     var composing by rememberSaveable { mutableStateOf(false) }
@@ -161,7 +164,11 @@ fun ReplyComposer(
                 TextButton({ composing = false }) { Text("Back to recording", color = foreground) }
             }
         } else
-            CenteredRecordActions(onRecord = { onLive(null) }, enabled = recordEnabled) {
+            CenteredRecordActions(
+                onRecord = { onLive(null) },
+                enabled = recordEnabled,
+                label = recordLabel,
+            ) {
                 Box {
                     IconButton({ attachmentMenu = true }) {
                         GenoaIcon("add", "Reply options", tint = foreground)
@@ -278,7 +285,7 @@ fun DraftStrip(
                         DraftState.PROCESSING -> "Processing your message…"
                         DraftState.BLOCKED -> "Can’t send to this conversation"
                         DraftState.UPLOADING -> "Uploading · ${draft.percent}%"
-                        DraftState.FAILED -> "Upload paused · Recording saved"
+                        DraftState.FAILED -> "Not sent · Recording saved"
                         else -> "Not sent yet"
                     },
                     color = color,

@@ -208,7 +208,7 @@ class WatchPresentationTest {
             )
             .performClick()
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithContentDescription("Record").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithContentDescription("Go live").fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag("message-filmstrip").assertIsDisplayed()
         assertRecordCentered()
@@ -222,10 +222,14 @@ class WatchPresentationTest {
             compose.onAllNodesWithTag("video-ready").fetchSemanticsNodes().isNotEmpty()
         }
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithContentDescription("Record").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithContentDescription("Go live").fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithContentDescription("Record").performClick()
-        // The reply tap must survive the camera-screen handoff without a second tap.
+        compose.onNodeWithContentDescription("Go live").performClick()
+        // Go live opens preflight; sharing starts only after the explicit consent action.
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithContentDescription("Start sharing live").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription("Start sharing live").performClick()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithContentDescription("Stop recording").fetchSemanticsNodes().isNotEmpty()
         }
@@ -242,7 +246,7 @@ class WatchPresentationTest {
     private fun assertRecordCentered() {
         val row = compose.onNodeWithTag("record-actions").fetchSemanticsNode().boundsInRoot
         val record =
-            compose.onNodeWithContentDescription("Record").fetchSemanticsNode().boundsInRoot
+            compose.onNodeWithContentDescription("Go live").fetchSemanticsNode().boundsInRoot
         val plus =
             compose.onNodeWithContentDescription("Reply options").fetchSemanticsNode().boundsInRoot
         assertEquals(row.center.x, record.center.x, 1f)

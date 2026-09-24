@@ -15,6 +15,9 @@ import org.json.JSONObject
 data class AppState(
     val loading: Boolean = false,
     val loginProviders: List<String> = emptyList(),
+    val passwordReset: Boolean = false,
+    /** Persistent sign-in screen explanation, such as a suspension message from the server. */
+    val signInNotice: String? = null,
     val person: Person? = null,
     val conversations: List<Conversation> = emptyList(),
     val selected: Conversation? = null,
@@ -35,7 +38,7 @@ data class AppState(
 
 class GenoaViewModel(application: Application) : AndroidViewModel(application) {
     val repo = (application as GenoaApplication).repository
-    private val _state = MutableStateFlow(AppState())
+    private val _state = MutableStateFlow(AppState(signInNotice = repo.session.signedOutNotice))
     val state = _state.asStateFlow()
     private var socket: WebSocket? = null
     private var generation = 0
@@ -63,6 +66,7 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
+        viewModelScope.launch { repo.api.suspensions.collect { endSuspendedSession(it) } }
         viewModelScope.launch {
             repo.progressErrors.collect { error -> _state.update { it.copy(error = error) } }
         }
@@ -137,6 +141,9 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
                 action()
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: ApiException) {
+                if (e.accountSuspended) endSuspendedSession(e.message!!)
+                else _state.update { it.copy(error = e.message) }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(error = e.message ?: "Something went wrong. Please try again.")
@@ -150,6 +157,7 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
     fun signIn(email: String, password: String, name: String?, invite: String, url: String) = run {
         repo.session.baseUrl = url
         repo.signIn(email, password, name, invite)
+        clearSignInNotice()
         val person = repo.me()
         repo.recoverDrafts()
         val saved =
@@ -161,9 +169,11 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
     fun loadLoginProviders() =
         viewModelScope.launch {
             try {
-                val rows = repo.api.json("GET", "/auth/mobile/providers").getJSONArray("providers")
+                val response = repo.api.json("GET", "/auth/mobile/providers")
+                val rows = response.getJSONArray("providers")
                 _state.update {
                     it.copy(
+                        passwordReset = response.optBoolean("password_reset", false),
                         loginProviders =
                             (0 until rows.length())
                                 .map { i -> rows.getString(i) }
@@ -177,12 +187,50 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
+    /** Returns null once the server accepted the request, otherwise a message to show. */
+    suspend fun requestPasswordReset(email: String): String? =
+        try {
+            repo.api.call(
+                "POST",
+                "/auth/request-password-reset",
+                json(
+                    "email" to email.trim(),
+                    "redirectTo" to serverPage(repo.session.baseUrl, "reset-password"),
+                ),
+            )
+            null
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            passwordResetFailure(e)
+        }
+
+    private fun clearSignInNotice() {
+        repo.session.signedOutNotice = null
+        _state.update { it.copy(signInNotice = null) }
+    }
+
+    // Mirrors session expiry: the token is already cleared by Api; account-scoped drafts stay.
+    private fun endSuspendedSession(message: String) {
+        generation++
+        socket?.close(1000, "Account suspended")
+        socket = null
+        _state.update {
+            AppState(
+                loginProviders = it.loginProviders,
+                passwordReset = it.passwordReset,
+                signInNotice = message,
+            )
+        }
+    }
+
     fun socialSignIn(provider: String, open: (android.net.Uri) -> Unit) = run {
         open(SocialSignIn(repo).start(provider))
     }
 
     fun completeSocialSignIn(uri: android.net.Uri) = run {
         SocialSignIn(repo).complete(uri)
+        clearSignInNotice()
         val person = repo.me()
         repo.recoverDrafts()
         val drafts =
@@ -253,7 +301,8 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
                         error = "Sign in again to open this message.",
                     )
                 }
-            } else
+            } else if (error.accountSuspended) endSuspendedSession(error.message!!)
+            else
                 _state.update {
                     it.copy(
                         connectionError = "Couldn't open this message yet. Retrying when connected."
@@ -307,6 +356,8 @@ class GenoaViewModel(application: Application) : AndroidViewModel(application) {
                             error = "Sign in again to sync your messages.",
                         )
                     }
+                } else if (e.accountSuspended) {
+                    endSuspendedSession(e.message!!)
                 } else if (e.status in listOf(403, 404)) {
                     _state.update {
                         it.copy(
