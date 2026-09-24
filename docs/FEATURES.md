@@ -21,6 +21,22 @@ Genoa is beta software. This page records what is implemented, how it is verifie
 | Diagnostics | Crashlytics (Android release), MetricKit uploads (iOS) | Unit tests; delivery requires physical devices |
 | Captions and summaries | Author-consented server processing; hidden in the current apps | Earlier production proof; not exercised by current UI |
 
+## Production
+
+- **Deployed:** migration `0008.sql` applied and Worker version `d9b74d0a-e30f-4a4d-b2ac-2dc5396cfb7a` deployed on September 24, 2026. The pre-migration D1 Time Travel bookmark is `0000090a-00000036-000050f0-6631ffb9b5c12278a94b2304d3b9ea8b`.
+- **Smoke test passed:**
+  - health, including the legacy host
+  - provider capabilities
+  - public policy pages
+  - admin routes hidden
+  - 8-character minimum
+  - signup and `/api/me`
+  - diagnostics intake
+  - the delete tombstone refusing a late create
+  - a text message
+  - account deletion (the temporary account was removed)
+- **Not configured yet:** email (password reset stays hidden), `SUPPORT_EMAIL`, `ALERT_EMAIL`, `ADMIN_URL`, APNs.
+
 ## Automated checks
 
 Run locally and in [CI](../.github/workflows/ci.yml):
