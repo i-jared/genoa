@@ -204,7 +204,9 @@ final class StubProtocol: URLProtocol {
   override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
   override func startLoading() {
     do {
-      let (status, body) = try Self.handler!(request)
+      // Work started by an earlier test can outlive its teardown; fail it like a dropped connection.
+      guard let handler = Self.handler else { throw URLError(.cancelled) }
+      let (status, body) = try handler(request)
       let response = HTTPURLResponse(
         url: request.url!, statusCode: status, httpVersion: nil,
         headerFields: ["Content-Type": "application/json"])!

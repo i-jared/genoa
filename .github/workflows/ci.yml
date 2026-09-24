@@ -141,11 +141,13 @@ jobs:
           print(next(d["udid"] for d in devices if d["name"].startswith("iPhone")))')
           xcodebuild -version
           set -o pipefail
+          # Ad-hoc signing, not CODE_SIGNING_ALLOWED=NO: Keychain tests need the entitlements embedded.
           # Surface compiler and test failures as annotations so they're readable without log access.
           xcodebuild -project ios/Genoa.xcodeproj -scheme Genoa \
             -destination "platform=iOS Simulator,id=$device" \
             -parallel-testing-enabled NO -only-testing:GenoaTests \
-            CODE_SIGNING_ALLOWED=NO test 2>&1 | tee xcodebuild.log |
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+            test 2>&1 | tee xcodebuild.log |
             awk '/error: |: error:|with [1-9][0-9]* failures?|Testing failed|\*\* TEST FAILED/ { print "::error::" $0 }'
           grep -q "TEST SUCCEEDED" xcodebuild.log
       - if: failure()
