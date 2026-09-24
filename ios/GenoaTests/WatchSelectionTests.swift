@@ -23,6 +23,28 @@ final class WatchSelectionTests: XCTestCase {
     XCTAssertEqual(
       nextIncomingMessage([old, mine, incoming], userId: "me", after: "old")?.id, "new")
   }
+  func conversation(members: Int, title: String = "", names: [String]?) throws -> Conversation {
+    var json: [String: Any] = [
+      "id": "c", "title": title.isEmpty ? "Ana" : title, "member_count": members, "unread": 0,
+      "unwatched": 0, "favorite": 0, "muted": 0, "named": title.isEmpty ? 0 : 1,
+    ]
+    if let names { json["member_names"] = names }
+    return try API.decoder.decode(
+      Conversation.self, from: JSONSerialization.data(withJSONObject: json))
+  }
+  func testNamedTwoPersonConversationIsAGroupAndPreviewCountsHiddenMembers() throws {
+    XCTAssertFalse(try conversation(members: 2, names: ["Ana"]).isGroup)
+    let named = try conversation(members: 2, title: "Trail crew", names: ["Ana"])
+    XCTAssertTrue(named.isGroup)
+    XCTAssertEqual(named.memberSummary, "Ana")
+    let large = try conversation(
+      members: 7, title: "Family", names: ["Ana Ruiz", "Ben", "Cal", "Dee"])
+    XCTAssertEqual(large.memberSummary, "Ana, Ben, Cal, Dee +2")
+    XCTAssertEqual(
+      try conversation(members: 1, title: "Waiting", names: []).memberSummary, "Only you so far")
+    // Rows cached before the server sent member names still decode.
+    XCTAssertTrue(try conversation(members: 3, names: nil).isGroup)
+  }
   func testPartiallyWatchedMessageStaysInIncomingQueue() throws {
     let partial = try message("partial", position: 2000)
     XCTAssertEqual(nextIncomingMessage([partial], userId: "me")?.positionMs, 2000)

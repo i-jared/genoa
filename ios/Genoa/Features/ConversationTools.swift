@@ -80,21 +80,27 @@ struct ConversationDetailsScreen: View {
   @State private var leaving = false
   @State private var note = false
   @State private var reminders = false
+  @State private var renamed = false
   var owner: Bool { details?.members.first(where: { $0.id == model.person?.id })?.role == "owner" }
   var current: Conversation {
     model.conversations.first { $0.id == conversation.id } ?? conversation
   }
+  var trimmedTitle: String { title.trimmingCharacters(in: .whitespacesAndNewlines) }
   var body: some View {
     NavigationStack {
       Form {
         Section("Conversation") {
-          if owner {
-            TextField("Name", text: $title)
-            Button("Rename") { Task { await mutate(["title": title]) } }.disabled(
-              title.isEmpty || title.count > 80)
-          } else {
-            Text(current.title)
-          }
+          TextField("Conversation name", text: $title).onChange(of: title) { renamed = false }
+          Button(renamed ? "Name saved" : "Save name") {
+            Task {
+              await model.perform {
+                try await model.rename(conversation.id, to: title)
+                renamed = true
+              }
+            }
+          }.disabled(renamed || trimmedTitle.isEmpty || trimmedTitle == current.title || title.count > 80)
+          Text("Everyone in the conversation can rename it and will see the new name.")
+            .font(.footnote).foregroundStyle(Genoa.muted)
           Toggle(
             "Favorite",
             isOn: Binding(
@@ -144,7 +150,8 @@ struct ConversationDetailsScreen: View {
           if owner { Text("Transfer ownership before leaving.").font(.footnote) }
         }
       }.navigationTitle("Conversation details").toolbar { Button("Done") { dismiss() } }.task {
-        title = current.title
+        // Unnamed conversations show members' names; start empty so a real name is chosen.
+        title = current.named == 1 ? current.title : ""
         await reload()
       }
       .sheet(isPresented: Binding(get: { share != nil }, set: { if !$0 { share = nil } })) {
@@ -239,6 +246,7 @@ struct MessageActionsScreen: View {
   @State private var emoji = ""
   @State private var forwardID = UUID().uuidString.lowercased()
   @State private var reminderID = UUID().uuidString.lowercased()
+  @State private var reminderSet: Date?
   var body: some View {
     NavigationStack {
       Form {
@@ -291,10 +299,25 @@ struct MessageActionsScreen: View {
               try await model.api?.mutate(
                 "/api/messages/\(message.id)/reminder",
                 body: ["id": reminderID, "due_at": Int64(date.timeIntervalSince1970 * 1000)])
-              model.notice = "Reminder scheduled."
-              dismiss()
+              let alerting = await model.alertForReminder(
+                id: reminderID, conversation: conversation.id, message: message.id, due: date)
+              reminderID = UUID().uuidString.lowercased()
+              reminderSet = date
+              if !alerting {
+                model.error =
+                  "Reminder saved, but notifications are off for Genoa. Turn them on in Settings to get an alert."
+              }
             }
           }
+          if let reminderSet {
+            HStack(spacing: 6) {
+              GenoaIcon(name: "check", size: 18)
+              Text(
+                "Reminder set for \(reminderSet.formatted(date: .abbreviated, time: .shortened))")
+            }.font(.footnote).foregroundStyle(Genoa.muted).accessibilityElement(children: .combine)
+          }
+          Text("Genoa will notify you on this iPhone and reopen this message.").font(.footnote)
+            .foregroundStyle(Genoa.muted)
           Button("Manage reminders") { reminders = true }
         }
         Section { Button("Private scratchpad") { note = true } }
@@ -419,36 +442,59 @@ struct RemindersScreen: View {
   @Environment(\.dismiss) private var dismiss
   let conversation: String?
   @State private var reminders: [Reminder] = []
+  @State private var loaded = false
+  var visible: [Reminder] {
+    reminders.filter { conversation == nil || $0.conversationId == conversation }
+  }
   var body: some View {
     NavigationStack {
       List {
-        ForEach(reminders.filter { conversation == nil || $0.conversationId == conversation }) {
-          reminder in
-          VStack(alignment: .leading) {
-            Button(reminder.title) {
+        if loaded && visible.isEmpty {
+          ContentUnavailableView(
+            "No reminders", systemImage: "bell",
+            description: Text(
+              "While watching, open a message’s actions and choose a time under Remind me."))
+        }
+        ForEach(visible) { reminder in
+          VStack(alignment: .leading, spacing: 6) {
+            Button(title(reminder)) {
               model.pendingTarget = (reminder.conversationId, reminder.messageId)
               Task {
                 await model.refresh()
                 dismiss()
               }
-            }
-            Text(Date(timeIntervalSince1970: Double(reminder.dueAt) / 1000), style: .date)
-            Text(reminder.sent == 1 ? "Delivered to notification service" : "Scheduled").font(
-              .caption)
+            }.font(.headline).frame(minHeight: 48, alignment: .leading)
+            Text(
+              Date(timeIntervalSince1970: Double(reminder.dueAt) / 1000).formatted(
+                date: .abbreviated, time: .shortened))
+            Text(reminder.sent == 1 ? "Reminded" : "Scheduled").font(.caption)
+              .foregroundStyle(Genoa.muted)
             Button("Remove reminder", role: .destructive) {
               Task {
                 await model.perform {
                   try await model.api?.mutate("/api/reminders/\(reminder.id)", method: "DELETE")
+                  model.removeReminderAlert(reminder.id)
                   await load()
                 }
               }
-            }
+            }.frame(minHeight: 48)
           }
         }
       }.navigationTitle("Reminders").toolbar { Button("Done") { dismiss() } }.task { await load() }
     }
   }
+  func title(_ reminder: Reminder) -> String {
+    // The server stores an empty title for unnamed conversations; prefer the displayed name.
+    if let c = model.conversations.first(where: { $0.id == reminder.conversationId }) {
+      return c.title
+    }
+    return reminder.title.isEmpty ? "Conversation" : reminder.title
+  }
   func load() async {
-    await model.perform { reminders = try await model.api?.call("/api/reminders") ?? [] }
+    await model.perform {
+      reminders = try await model.api?.call("/api/reminders") ?? []
+      loaded = true
+      await model.syncReminderAlerts(reminders)
+    }
   }
 }

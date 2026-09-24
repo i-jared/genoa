@@ -76,6 +76,31 @@ test("open signup, six-character passwords, nameless contacts and retry-safe inv
   ).json()) as { id: string; title: string }[];
   assert.equal(rows.filter((r) => r.id === cid).length, 1);
   assert.equal(rows.find((r) => r.id === cid)?.title, "Bob");
+  const rename = (title: string, token: string) =>
+    fetch(base + `/api/conversations/${cid}`, {
+      method: "PATCH",
+      headers: {
+        Origin: base,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ title }),
+    });
+  assert.equal((await rename("Taken", outsider.token)).status, 404);
+  assert.equal((await rename("Trail crew", bob.token)).status, 200);
+  const renamed = (
+    (await (
+      await request("/api/conversations", undefined, alice.token)
+    ).json()) as {
+      id: string;
+      title: string;
+      named: number;
+      member_names: string[];
+    }[]
+  ).find((r) => r.id === cid);
+  assert.equal(renamed?.title, "Trail crew");
+  assert.equal(renamed?.named, 1);
+  assert.deepEqual(renamed?.member_names, ["Bob"]);
   const group = randomUUID();
   assert.equal(
     (

@@ -31,11 +31,16 @@ struct WatchScreen: View {
       VStack(spacing: 0) {
         HStack {
           IconButton(icon: "back", label: "Back") { dismiss() }
-          VStack(alignment: .leading) {
-            Text(conversation.title).font(.headline)
-            if let m = watch.current { Text("\(m.authorName) · \(m.viewingLabel)").font(.caption) }
-          }
-          Spacer()
+          Button {
+            details = true
+          } label: {
+            VStack(alignment: .leading) {
+              // Read the live row so a rename shows without leaving the conversation.
+              Text(model.conversations.first { $0.id == conversation.id }?.title ?? conversation.title)
+                .font(.headline)
+              if let m = watch.current { Text("\(m.authorName) · \(m.viewingLabel)").font(.caption) }
+            }.frame(maxWidth: .infinity, minHeight: 48, alignment: .leading).contentShape(Rectangle())
+          }.accessibilityHint("Opens conversation details and rename")
           IconButton(icon: "more", label: "Conversation details") { details = true }
         }.foregroundStyle(.white)
         if let error = watch.error {

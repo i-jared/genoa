@@ -39,24 +39,26 @@ fun GroupDialog(vm: GenoaViewModel, state: AppState, onClose: () -> Unit) {
                 Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (owner) {
-                    OutlinedTextField(title, { title = it }, label = { Text("Conversation name") })
-                    TextButton(
-                        {
-                            vm.run {
-                                vm.repo.api.json(
-                                    "PATCH",
-                                    "/api/conversations/${conversation.id}",
-                                    json("title" to title),
-                                )
-                                vm.refresh()
-                            }
-                        },
-                        enabled = title.isNotBlank(),
-                    ) {
-                        Text("Save name")
-                    }
+                OutlinedTextField(title, { title = it }, label = { Text("Conversation name") })
+                TextButton(
+                    {
+                        vm.run {
+                            vm.repo.api.json(
+                                "PATCH",
+                                "/api/conversations/${conversation.id}",
+                                json("title" to title),
+                            )
+                            vm.refresh()
+                        }
+                    },
+                    enabled = title.isNotBlank(),
+                ) {
+                    Text("Save name")
                 }
+                Text(
+                    "Everyone in the conversation can rename it and will see the new name.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Notifications muted", Modifier.weight(1f))
                     Switch(conversation.muted, { vm.toggleConversation(muted = it) })

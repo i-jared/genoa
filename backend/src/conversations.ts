@@ -7,8 +7,9 @@ conversations.get("/", async (c) => {
   const result = await c.env.DB.prepare(
     `SELECT c.id,c.creator_id,c.created_at,
     COALESCE(NULLIF(c.title,''),(SELECT group_concat(name, ', ') FROM (SELECT u.name FROM members peers JOIN user u ON u.id=peers.user_id WHERE peers.conversation_id=c.id AND peers.user_id!=cm.user_id ORDER BY peers.joined_at,u.id LIMIT 3)), 'New conversation') title,
-    cm.muted, cm.favorite,
+    cm.muted, cm.favorite, c.title!='' named,
     (SELECT count(*) FROM members WHERE conversation_id=c.id) member_count,
+    (SELECT json_group_array(name) FROM (SELECT u.name FROM members peers JOIN user u ON u.id=peers.user_id WHERE peers.conversation_id=c.id AND peers.user_id!=cm.user_id ORDER BY peers.joined_at,u.id LIMIT 4)) member_names,
     (SELECT count(*) FROM messages m WHERE m.conversation_id=c.id AND m.state='ready' AND m.author_id!=? AND m.created_at>=cm.joined_at AND NOT EXISTS(SELECT 1 FROM blocks b WHERE b.user_id=cm.user_id AND b.blocked_id=m.author_id) AND NOT EXISTS(SELECT 1 FROM progress p WHERE p.message_id=m.id AND p.user_id=? AND p.watched=1)) unread,
     (SELECT count(*) FROM messages m WHERE m.conversation_id=c.id AND m.state='ready' AND m.kind IN ('video','audio') AND m.author_id!=cm.user_id AND m.created_at>=cm.joined_at AND NOT EXISTS(SELECT 1 FROM blocks b WHERE b.user_id=cm.user_id AND b.blocked_id=m.author_id) AND NOT EXISTS(SELECT 1 FROM progress p WHERE p.message_id=m.id AND p.user_id=cm.user_id AND p.watched=1)) unwatched,
     (SELECT json_object('kind',m.kind,'text',m.text,'author',u.name,'duration_ms',m.duration_ms,'position_ms',COALESCE(p.position_ms,0),'watched',COALESCE(p.watched,0)) FROM messages m JOIN user u ON u.id=m.author_id LEFT JOIN progress p ON p.message_id=m.id AND p.user_id=cm.user_id WHERE m.conversation_id=c.id AND m.state='ready' AND m.created_at>=cm.joined_at AND NOT EXISTS(SELECT 1 FROM blocks b WHERE b.user_id=cm.user_id AND b.blocked_id=m.author_id) ORDER BY m.seq DESC LIMIT 1) preview_data,
@@ -17,8 +18,13 @@ conversations.get("/", async (c) => {
     FROM conversations c JOIN members cm ON cm.conversation_id=c.id WHERE cm.user_id=? ORDER BY cm.favorite DESC, COALESCE(last_activity,c.created_at) DESC, c.id`,
   )
     .bind(c.get("userId"), c.get("userId"), c.get("userId"))
-    .all();
-  return c.json(result.results);
+    .all<{ member_names: string }>();
+  return c.json(
+    result.results.map((row) => ({
+      ...row,
+      member_names: JSON.parse(row.member_names) as string[],
+    })),
+  );
 });
 conversations.post("/", async (c) => {
   const input = await body(
@@ -137,11 +143,10 @@ conversations.patch("/:id", async (c) => {
     }),
   );
   const cid = c.req.param("id"),
-    uid = c.get("userId"),
-    member = await membership(c.env, cid, uid);
+    uid = c.get("userId");
+  await membership(c.env, cid, uid);
+  // Small groups rename like a shared chat: any member may, and everyone sees it.
   if (input.title !== undefined) {
-    if (member.role !== "owner")
-      fail(403, "Only the owner can rename this group");
     await c.env.DB.prepare("UPDATE conversations SET title=? WHERE id=?")
       .bind(input.title, cid)
       .run();

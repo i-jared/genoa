@@ -25,6 +25,18 @@ struct Conversation: Codable, Identifiable, Hashable {
   var lastActivity: Int64?
   var preview: String?
   var previewData: String?
+  var named: Int?
+  var memberNames: [String]?
+  /// A named conversation reads as a group even before a third person joins.
+  var isGroup: Bool { memberCount > 2 || named == 1 }
+  var memberSummary: String {
+    let names = memberNames ?? []
+    if names.isEmpty { return "Only you so far" }
+    let hidden = memberCount - 1 - names.count
+    // First names keep the "+N" visible on one line.
+    let first = names.map { $0.split(separator: " ").first.map(String.init) ?? $0 }
+    return first.joined(separator: ", ") + (hidden > 0 ? " +\(hidden)" : "")
+  }
   var previewText: String {
     if let preview, !preview.isEmpty { return preview }
     struct Preview: Decodable {

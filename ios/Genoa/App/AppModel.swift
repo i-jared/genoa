@@ -67,6 +67,9 @@ final class AppModel: ObservableObject {
       if let c = try SessionVault.read() {
         try await activate(c)
         await refresh()
+        if let rows: [Reminder] = try? await api?.call("/api/reminders") {
+          await syncReminderAlerts(rows)
+        }
       }
     } catch { self.error = error.localizedDescription }
   }
@@ -213,6 +216,7 @@ final class AppModel: ObservableObject {
   }
   func expireSession() async {
     playback.stop()
+    await clearReminderAlerts()
     await outbox?.stop()
     await transfer.cancelAll()
     await thumbnails.clear()
@@ -228,6 +232,7 @@ final class AppModel: ObservableObject {
   }
   func clearSession() async {
     playback.stop()
+    await clearReminderAlerts()
     await outbox?.stop()
     await transfer.cancelAll()
     await thumbnails.clear()
@@ -267,6 +272,67 @@ final class AppModel: ObservableObject {
       body: ["id": id, "member_ids": members, "invite_id": invite])
     await refresh()
     return result.url
+  }
+  func rename(_ conversation: String, to title: String) async throws {
+    try await api?.mutate(
+      "/api/conversations/\(conversation)", method: "PATCH",
+      body: ["title": title.trimmingCharacters(in: .whitespacesAndNewlines)])
+    await refresh()
+  }
+  // APNs is not configured on every server, so this iPhone schedules its own alert for
+  // each server reminder. The identifier matches the server's APNs collapse ID.
+  private static let reminderPrefix = "reminder:"
+  func alertForReminder(
+    id: String, conversation: String, message: String, due: Date, prompt: Bool = true
+  ) async -> Bool {
+    let center = UNUserNotificationCenter.current()
+    if prompt, await center.notificationSettings().authorizationStatus == .notDetermined {
+      _ = try? await center.requestAuthorization(options: [.alert, .badge, .sound])
+    }
+    guard [.authorized, .provisional, .ephemeral].contains(
+      await center.notificationSettings().authorizationStatus)
+    else { return false }
+    let content = UNMutableNotificationContent()
+    content.title = "Time to reply"
+    content.body = "Your saved reminder is ready"
+    content.sound = .default
+    content.userInfo = ["conversation_id": conversation, "message_id": message]
+    let trigger = UNTimeIntervalNotificationTrigger(
+      timeInterval: max(1, due.timeIntervalSinceNow), repeats: false)
+    do {
+      try await center.add(
+        UNNotificationRequest(
+          identifier: Self.reminderPrefix + id, content: content, trigger: trigger))
+      return true
+    } catch { return false }
+  }
+  func removeReminderAlert(_ id: String) {
+    UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [
+      Self.reminderPrefix + id
+    ])
+  }
+  /// Matches pending alerts to the server list, covering reminders set or removed elsewhere.
+  func syncReminderAlerts(_ reminders: [Reminder]) async {
+    let center = UNUserNotificationCenter.current()
+    let pending = Set(
+      await center.pendingNotificationRequests().map(\.identifier).filter {
+        $0.hasPrefix(Self.reminderPrefix)
+      })
+    let wanted = reminders.filter { $0.sent == 0 && Double($0.dueAt) / 1000 > Date().timeIntervalSince1970 }
+    let keep = Set(wanted.map { Self.reminderPrefix + $0.id })
+    center.removePendingNotificationRequests(withIdentifiers: Array(pending.subtracting(keep)))
+    for r in wanted where !pending.contains(Self.reminderPrefix + r.id) {
+      _ = await alertForReminder(
+        id: r.id, conversation: r.conversationId, message: r.messageId,
+        due: Date(timeIntervalSince1970: Double(r.dueAt) / 1000), prompt: false)
+    }
+  }
+  private func clearReminderAlerts() async {
+    let center = UNUserNotificationCenter.current()
+    let ids = await center.pendingNotificationRequests().map(\.identifier).filter {
+      $0.hasPrefix(Self.reminderPrefix)
+    }
+    center.removePendingNotificationRequests(withIdentifiers: ids)
   }
   func join(_ input: String) async throws {
     guard let api else { return }

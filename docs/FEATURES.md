@@ -2,6 +2,14 @@
 
 Genoa is beta software. This document records current behavior and verification limits; it is not a production-readiness certification.
 
+## Groups and reminders — September 24, 2026
+
+- The iOS Groups filter includes named conversations as well as those with three or more people. Previously a named two-person group never appeared. Conversation rows on both apps show a compact member preview (first names plus "+N"; iOS adds small avatars).
+- Any member can rename a conversation (server rule changed from owner-only). On iOS: long-press a row → Rename, or tap the conversation title to open details. The watch header updates without leaving the conversation. Android details allow every member to save a name.
+- iOS reminders now schedule a local notification. The notification ID matches the server's APNs collapse ID, `reminder:<id>`. Before this, iOS reminders never alerted because APNs is unconfigured. Message actions confirm the reminder time or explain that notifications are off. The reminder list shows date and time, an empty state, and the displayed conversation name; removal also cancels the local alert. Pending alerts are reconciled with the server on launch and when the list opens, and cleared on sign-out or session expiry. After APNs is configured, whether local and remote reminders merge into one notification must be checked on a device.
+
+Verification: backend TypeScript check and local integration suite pass (7 pass, 1 skipped as before), including member rename, outsider rejection, `named` and `member_names`. iOS simulator build and `WatchSelectionTests` pass, including group classification and preview. A simulator UI run against the isolated test server confirmed the Groups filter, member preview, long-press rename, and the live header update. The temporary test was removed afterwards. Android unit tests and lint pass. Not yet done: production deploy of the backend change, and on-device reminder alert delivery.
+
 ## Signup, recording and conversations — September 22, 2026
 
 - Open email signup is deployed: no beta code, minimum six-character password, optional display name in both apps. Google/Apple browser flows are implemented with proof-bound, expiring, single-use handoffs; buttons remain hidden until provider secrets exist. Provider credentials remain unconfigured; external provider consent/account-linking is not yet verified. See [setup instructions](SOCIAL-SIGN-IN.md).

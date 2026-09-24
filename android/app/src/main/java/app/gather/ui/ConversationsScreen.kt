@@ -393,6 +393,17 @@ private fun ConversationRow(c: Conversation, onClick: () -> Unit) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (c.isGroup)
+                Text(
+                    // Unnamed groups already list names in the title.
+                    if (c.named || c.memberNames.isEmpty()) c.memberSummary
+                    else "${c.members} people",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.semantics { contentDescription = "Members: ${c.memberSummary}" },
+                )
             Text(
                 c.preview,
                 maxLines = 1,

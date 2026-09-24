@@ -7,10 +7,12 @@ struct ConversationsScreen: View {
   @State private var create = false
   @State private var join = false
   @State private var invite = ""
+  @State private var renaming: Conversation?
+  @State private var newName = ""
   var filtered: [Conversation] {
     model.conversations.filter { c in
       (search.isEmpty || c.title.localizedCaseInsensitiveContains(search))
-        && (filter != "Unwatched" || c.unwatched > 0) && (filter != "Groups" || c.memberCount > 2)
+        && (filter != "Unwatched" || c.unwatched > 0) && (filter != "Groups" || c.isGroup)
     }
   }
   var body: some View {
@@ -45,12 +47,15 @@ struct ConversationsScreen: View {
       List {
         if filtered.isEmpty {
           ContentUnavailableView(
-            search.isEmpty ? "No conversations yet" : "No matches",
+            !search.isEmpty
+              ? "No matches" : filter == "Groups" ? "No groups yet" : "No conversations yet",
             systemImage: "bubble.left.and.bubble.right",
             description: Text(
-              search.isEmpty
-                ? "Start a conversation or join with an invitation."
-                : "Search checks conversation names.")
+              !search.isEmpty
+                ? "Search checks conversation names."
+                : filter == "Groups"
+                  ? "Conversations with more than one other person, or that you name, appear here."
+                  : "Start a conversation or join with an invitation.")
           ).listRowBackground(Color.clear)
         }
         ForEach(filtered) { c in
@@ -58,11 +63,28 @@ struct ConversationsScreen: View {
             model.path.append(c)
           } label: {
             ConversationRow(conversation: c)
+          }.contextMenu {
+            Button("Rename") {
+              newName = c.named == 1 ? c.title : ""
+              renaming = c
+            }
           }.listRowBackground(Genoa.canvas).listRowInsets(
             EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
         }
       }.listStyle(.plain).scrollContentBackground(.hidden).refreshable { await model.refresh() }
     }.sheet(isPresented: $create) { CreateConversationScreen() }
+      .alert(
+        "Rename conversation",
+        isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } }),
+        presenting: renaming
+      ) { c in
+        TextField(c.title, text: $newName)
+        Button("Cancel", role: .cancel) {}
+        Button("Save") { Task { await model.perform { try await model.rename(c.id, to: newName) } } }
+          .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty || newName.count > 80)
+      } message: { _ in
+        Text("Everyone in the conversation will see the new name.")
+      }
       .alert("Join conversation", isPresented: $join) {
         TextField("Invitation link or code", text: $invite)
         Button("Cancel", role: .cancel) {}
@@ -84,6 +106,7 @@ struct ConversationRow: View {
           Text(conversation.title).font(.headline)
           if conversation.favorite == 1 { Text("★").accessibilityLabel("Favorite") }
         }
+        if conversation.isGroup { MemberPreview(conversation: conversation) }
         Text(conversation.previewText).font(.subheadline).foregroundStyle(Genoa.muted).lineLimit(2)
         if conversation.unwatched > 0 {
           Text("\(conversation.unwatched) unwatched").font(.caption).foregroundStyle(Genoa.teal)
@@ -96,6 +119,26 @@ struct ConversationRow: View {
       GenoaIcon(name: "chevron", size: 20)
     }.padding(.vertical, 6).contentShape(Rectangle()).foregroundStyle(Genoa.ink)
       .accessibilityElement(children: .combine)
+  }
+}
+/// Shows who is in a group at a glance, beneath its name.
+struct MemberPreview: View {
+  let conversation: Conversation
+  var body: some View {
+    let names = conversation.memberNames ?? []
+    HStack(spacing: 6) {
+      HStack(spacing: -6) {
+        ForEach(Array(names.prefix(3).enumerated()), id: \.offset) { _, name in
+          Avatar(name: name, size: 22).overlay(Circle().stroke(Genoa.canvas, lineWidth: 2))
+        }
+      }
+      // Unnamed groups already list names in the title, so show the headcount instead.
+      Text(
+        conversation.named == 1 || names.isEmpty
+          ? conversation.memberSummary : "\(conversation.memberCount) people"
+      ).font(.caption).foregroundStyle(Genoa.muted).lineLimit(1)
+    }.accessibilityElement(children: .ignore).accessibilityLabel(
+      "Members: \(conversation.memberSummary)")
   }
 }
 struct RecipientPicker: View {

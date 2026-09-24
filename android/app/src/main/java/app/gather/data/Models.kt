@@ -23,7 +23,22 @@ data class Conversation(
     val preview: String,
     val activity: Long,
     val unwatched: Int = 0,
-)
+    val named: Boolean = false,
+    val memberNames: List<String> = emptyList(),
+) {
+    /** A named conversation reads as a group even before a third person joins. */
+    val isGroup
+        get() = members > 2 || named
+
+    val memberSummary: String
+        get() {
+            if (memberNames.isEmpty()) return "Only you so far"
+            val hidden = members - 1 - memberNames.size
+            // First names keep the "+N" visible on one line.
+            val first = memberNames.map { it.trim().substringBefore(' ').ifEmpty { it } }
+            return first.joinToString(", ") + if (hidden > 0) " +$hidden" else ""
+        }
+}
 
 data class Reaction(
     val userId: String,

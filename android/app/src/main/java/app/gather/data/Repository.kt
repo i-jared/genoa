@@ -304,6 +304,10 @@ class Repository(private val context: Context, val api: Api = Api(SessionStore(c
                     conversationPreview(j),
                     j.optLong("last_activity", j.optLong("created_at")),
                     j.optInt("unwatched"),
+                    j.optInt("named") == 1,
+                    j.optJSONArray("member_names")?.let { names ->
+                        (0 until names.length()).map { names.getString(it) }
+                    } ?: emptyList(),
                 )
             }
         }
