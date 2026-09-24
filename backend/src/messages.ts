@@ -8,12 +8,15 @@ import {
   membership,
   messageAccess,
   eventStatement,
+  deleteMessageStatements,
+  NOT_DISCARDED,
+  refuseDiscarded,
 } from "./access";
 export const messages = new Hono<AppEnv>();
 const messageSelect = `SELECT m.*,u.name author_name, a.id asset_id,a.mime,
  COALESCE(p.position_ms,0) position_ms,COALESCE(p.watched,0) watched,
  EXISTS(SELECT 1 FROM bookmarks b WHERE b.message_id=m.id AND b.user_id=?) bookmarked,
- (SELECT json_group_array(json_object('id',r.id,'user_id',r.user_id,'user_name',ru.name,'emoji',r.emoji,'position_ms',r.position_ms,'created_at',r.created_at)) FROM reaction_moments r JOIN user ru ON ru.id=r.user_id WHERE r.message_id=m.id) reactions
+ (SELECT json_group_array(json_object('id',r.id,'user_id',r.user_id,'user_name',ru.name,'emoji',r.emoji,'position_ms',r.position_ms,'created_at',r.created_at)) FROM (SELECT * FROM reaction_moments WHERE message_id=m.id ORDER BY created_at DESC LIMIT 500) r JOIN user ru ON ru.id=r.user_id) reactions
  FROM messages m JOIN user u ON u.id=m.author_id
  LEFT JOIN assets a ON a.message_id=m.id AND a.purpose='original'
  LEFT JOIN progress p ON p.message_id=m.id AND p.user_id=?
@@ -163,9 +166,10 @@ messages.post("/conversations/:id/messages", async (c) => {
     (existing.author_id !== uid || existing.conversation_id !== cid)
   )
     fail(409, "Message ID already exists");
+  await refuseDiscarded(c.env, input.id);
   await c.env.DB.batch([
     c.env.DB.prepare(
-      "INSERT OR IGNORE INTO messages(id,conversation_id,author_id,kind,text,reply_to,urgent,state,created_at) VALUES(?,?,?,'text',?,?,?,'ready',?)",
+      `INSERT OR IGNORE INTO messages(id,conversation_id,author_id,kind,text,reply_to,urgent,state,created_at) SELECT ?,?,?,'text',?,?,?,'ready',? WHERE ${NOT_DISCARDED}`,
     ).bind(
       input.id,
       cid,
@@ -174,6 +178,7 @@ messages.post("/conversations/:id/messages", async (c) => {
       input.reply_to ?? null,
       Number(input.urgent),
       Date.now(),
+      input.id,
     ),
     eventStatement(
       c.env,
@@ -182,6 +187,7 @@ messages.post("/conversations/:id/messages", async (c) => {
       `message:${input.id}`,
     ),
   ]);
+  await refuseDiscarded(c.env, input.id);
   return c.json({ id: input.id }, 201);
 });
 messages.put("/messages/:id/reaction", async (c) => {
@@ -197,6 +203,13 @@ messages.put("/messages/:id/reaction", async (c) => {
     uid = c.get("userId");
   const m = await messageAccess(c.env, mid, uid);
   const reactionId = input.id ?? crypto.randomUUID();
+  const mine = await c.env.DB.prepare(
+    "SELECT COUNT(*) n, SUM(id=?) existing FROM reaction_moments WHERE message_id=? AND user_id=?",
+  )
+    .bind(reactionId, mid, uid)
+    .first<{ n: number; existing: number | null }>();
+  if (!mine?.existing && (mine?.n ?? 0) >= 200)
+    fail(429, "You've reacted to this message as many times as Genoa allows");
   await c.env.DB.prepare(
     "INSERT OR IGNORE INTO reaction_moments(id,message_id,user_id,emoji,position_ms,created_at) VALUES(?,?,?,?,?,?)",
   )
@@ -284,14 +297,25 @@ messages.delete("/messages/:id", async (c) => {
   )
     .bind(mid)
     .first();
-  if (!row) fail(404, "Message unavailable");
+  if (!row) {
+    if (!id.safeParse(mid).success) fail(404, "Message unavailable");
+    // The tombstone and the conditional delete share a batch, so a create that commits first is
+    // deleted here and one that commits later is refused by the tombstone.
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        "INSERT OR IGNORE INTO message_tombstones VALUES(?,?,?)",
+      ).bind(mid, uid, Date.now()),
+      c.env.DB.prepare(
+        "UPDATE messages SET state='deleted',text='',transcript=NULL,summary=NULL WHERE id=? AND author_id=?",
+      ).bind(mid, uid),
+      c.env.DB.prepare(
+        "INSERT OR IGNORE INTO outbox(id,kind,payload,created_at) SELECT ?,'delete',?,? WHERE EXISTS(SELECT 1 FROM messages WHERE id=? AND author_id=?)",
+      ).bind(`delete:${mid}`, JSON.stringify({ messageId: mid }), Date.now(), mid, uid),
+    ]);
+    fail(404, "Message unavailable");
+  }
   if (row.author_id !== uid) fail(403, "You can only delete your own messages");
-  await c.env.DB.batch([
-    c.env.DB.prepare(
-      "UPDATE messages SET state='deleted',text='',transcript=NULL,summary=NULL WHERE id=?",
-    ).bind(mid),
-    eventStatement(c.env, "delete", { messageId: mid }, `delete:${mid}`),
-  ]);
+  await c.env.DB.batch(deleteMessageStatements(c.env, mid));
   return c.json({ ok: true });
 });
 messages.post("/messages/:id/forward", async (c) => {

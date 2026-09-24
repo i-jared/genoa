@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { auth } from "./auth";
+import { emailConfigured } from "./email";
 import { body, fail, rateLimit } from "./access";
 import type { AppEnv, Env } from "./types";
 
@@ -41,7 +42,10 @@ mobileAuth.use("*", async (c, next) => {
   await next();
 });
 mobileAuth.get("/providers", (c) =>
-  c.json({ providers: socialProviders(c.env) }),
+  c.json({
+    providers: socialProviders(c.env),
+    password_reset: emailConfigured(c.env),
+  }),
 );
 mobileAuth.post("/start", async (c) => {
   const input = await body(

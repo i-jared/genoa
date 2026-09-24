@@ -4,7 +4,11 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-16",
   "compatibility_flags": ["nodejs_compat"],
-  "vars": { "APP_URL": "http://localhost:8787", "ENVIRONMENT": "development" },
+  "vars": {
+    "APP_URL": "http://localhost:8787",
+    "ENVIRONMENT": "development",
+    "ADMIN_URL": "http://localhost:3000",
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -27,6 +31,8 @@
         "max_retries": 5,
         "dead_letter_queue": "genoa-failed",
       },
+      // Records dead-lettered jobs in D1 for triage and redrive from the admin console.
+      { "queue": "genoa-failed", "max_batch_size": 10 },
     ],
   },
   "triggers": { "crons": ["*/5 * * * *"] },

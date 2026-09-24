@@ -5,7 +5,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 const base = process.env.TEST_API_URL ?? "http://localhost:8787";
 
-test("open signup, six-character passwords, nameless contacts and retry-safe invitation links", async (t) => {
+test("open signup, eight-character passwords, nameless contacts and retry-safe invitation links", async (t) => {
   const accounts: string[] = [];
   const request = (path: string, body?: unknown, token?: string) =>
     fetch(base + path, {
@@ -26,7 +26,7 @@ test("open signup, six-character passwords, nameless contacts and retry-safe inv
     const response = await request("/auth/sign-up/email", {
       name,
       email,
-      password: "abcdef",
+      password: "abcdefgh",
     });
     assert.equal(response.status, 200, await response.clone().text());
     const token = response.headers.get("set-auth-token")!;
@@ -34,7 +34,7 @@ test("open signup, six-character passwords, nameless contacts and retry-safe inv
     const { user } = (await response.json()) as { user: { id: string } };
     const login = await request("/auth/sign-in/email", {
       email,
-      password: "abcdef",
+      password: "abcdefgh",
     });
     assert.equal(login.status, 200);
     return { token, id: user.id };
@@ -44,7 +44,7 @@ test("open signup, six-character passwords, nameless contacts and retry-safe inv
       await request("/auth/sign-up/email", {
         name: "Short",
         email: `${randomUUID()}@example.test`,
-        password: "abcde",
+        password: "abcdefg",
       })
     ).status,
     400,
@@ -175,7 +175,7 @@ test(
       body: JSON.stringify({
         name: "OAuth fixture",
         email: `${randomUUID()}@example.test`,
-        password: "abcdef",
+        password: "abcdefgh",
       }),
     });
     assert.equal(account.status, 200, await account.clone().text());
@@ -230,7 +230,10 @@ test(
     ).run(code, challenge, token, Date.now() - 1);
     assert.equal((await exchange(verifier)).status, 401);
     const providers = await fetch(base + "/auth/mobile/providers");
-    assert.deepEqual(await providers.json(), { providers: [] });
+    assert.deepEqual(await providers.json(), {
+      providers: [],
+      password_reset: true,
+    });
     const disabled = await fetch(base + "/auth/mobile/start", {
       method: "POST",
       headers: { Origin: base, "Content-Type": "application/json" },

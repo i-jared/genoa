@@ -54,6 +54,10 @@
         "max_batch_size": 5,
         "max_retries": 5,
         "dead_letter_queue": "genoa-failed"
+      },
+      {
+        "queue": "genoa-failed",
+        "max_batch_size": 10
       }
     ]
   },

@@ -17,6 +17,12 @@ export interface Env {
   FCM_SERVICE_ACCOUNT?: string;
   APNS_CREDENTIALS?: string;
   SUMMARY_MODEL?: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string; // e.g. "Genoa <no-reply@talkgenoa.com>"
+  SUPPORT_EMAIL?: string;
+  ALERT_EMAIL?: string;
+  ADMIN_URL?: string;
+  ACCOUNT_STORAGE_QUOTA_BYTES?: string;
 }
 export interface Job {
   id: string;

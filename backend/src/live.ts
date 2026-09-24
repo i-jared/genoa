@@ -8,6 +8,8 @@ import {
   membership,
   messageAccess,
   eventStatement,
+  NOT_DISCARDED,
+  refuseDiscarded,
 } from "./access";
 export const live = new Hono<AppEnv>();
 live.post("/conversations/:id/live", async (c) => {
@@ -37,7 +39,7 @@ live.post("/conversations/:id/live", async (c) => {
   if (prior && (prior.author_id !== uid || prior.conversation_id !== cid))
     fail(409, "Message ID already exists");
   await c.env.DB.prepare(
-    "INSERT OR IGNORE INTO messages(id,conversation_id,author_id,kind,state,created_at,live_activity,live_rotation,reply_to) VALUES(?,?,?,'video','live',?,?,?,?)",
+    `INSERT OR IGNORE INTO messages(id,conversation_id,author_id,kind,state,created_at,live_activity,live_rotation,reply_to) SELECT ?,?,?,'video','live',?,?,?,? WHERE ${NOT_DISCARDED}`,
   )
     .bind(
       input.id,
@@ -47,8 +49,10 @@ live.post("/conversations/:id/live", async (c) => {
       Date.now(),
       input.rotation,
       input.reply_to ?? null,
+      input.id,
     )
     .run();
+  await refuseDiscarded(c.env, input.id);
   await c.env.ROOMS.get(c.env.ROOMS.idFromName(cid)).fetch(
     "https://room/event",
     { method: "POST", body: JSON.stringify({ type: "changed" }) },

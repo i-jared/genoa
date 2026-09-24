@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "./types";
-import { body } from "./access";
+import { body, memberConversations, revokeLive } from "./access";
 export const account = new Hono<AppEnv>();
 account.get("/reminders", async (c) => {
   const rows = await c.env.DB.prepare(
@@ -52,6 +52,7 @@ account.get("/account/export", async (c) => {
 account.post("/account/delete", async (c) => {
   await body(c, z.object({ confirmation: z.literal("DELETE") }));
   const uid = c.get("userId");
+  const rooms = await memberConversations(c.env, uid);
   const owned = await c.env.DB.prepare(
     "SELECT conversation_id FROM members WHERE user_id=? AND role='owner'",
   )
@@ -72,10 +73,6 @@ account.post("/account/delete", async (c) => {
           "UPDATE conversations SET creator_id=? WHERE id=?",
         ).bind(next.user_id, group.conversation_id),
       ]);
-    await c.env.ROOMS.get(c.env.ROOMS.idFromName(group.conversation_id)).fetch(
-      "https://room/revoke",
-      { method: "POST", body: JSON.stringify({ userId: uid }) },
-    );
   }
   // Keep anonymous author rows for referential integrity while revoking all account access.
   const statements = [
@@ -111,6 +108,19 @@ account.post("/account/delete", async (c) => {
   statements.push(
     c.env.DB.prepare("DELETE FROM invites WHERE creator_id=?").bind(uid),
   );
+  statements.push(
+    c.env.DB.prepare("DELETE FROM diagnostics WHERE user_id=?").bind(uid),
+  );
+  const reports = await c.env.DB.prepare(
+    "SELECT id FROM diagnostics WHERE user_id=?",
+  )
+    .bind(uid)
+    .all<{ id: string }>();
   await c.env.DB.batch(statements);
+  // Memberships are gone, so broadcasts would already skip this person; close the sockets now too.
+  await revokeLive(c.env, uid, rooms);
+  await Promise.all(
+    reports.results.map((r) => c.env.MEDIA.delete(`diagnostics/${r.id}.json`)),
+  );
   return c.json({ ok: true });
 });

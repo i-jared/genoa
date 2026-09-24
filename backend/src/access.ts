@@ -2,14 +2,35 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import type { Ctx, Env, Message } from "./types";
 export const id = z.string().uuid();
-export function fail(
-  status: 400 | 401 | 403 | 404 | 409 | 410 | 413 | 502 | 429 | 503,
-  message: string,
-): never {
-  throw new HTTPException(status, { message });
+export type Status = 400 | 401 | 403 | 404 | 409 | 410 | 413 | 422 | 429 | 502 | 503;
+// `code` lets clients distinguish terminal failures (quota, unsupported media, suspension) from retryable ones.
+export class ApiError extends HTTPException {
+  constructor(
+    status: Status,
+    message: string,
+    readonly code?: string,
+  ) {
+    super(status, { message });
+  }
 }
-export async function body<T>(c: Ctx, schema: z.ZodType<T>): Promise<T> {
-  const value = schema.safeParse(await c.req.json().catch(() => null));
+export function fail(status: Status, message: string, code?: string): never {
+  throw new ApiError(status, message, code);
+}
+const JSON_LIMIT = 64 * 1024;
+export async function body<T>(
+  c: Ctx,
+  schema: z.ZodType<T>,
+  limit = JSON_LIMIT,
+): Promise<T> {
+  if (Number(c.req.header("content-length") ?? 0) > limit)
+    fail(413, "Request is too large");
+  const text = await c.req.text().catch(() => "");
+  if (text.length > limit) fail(413, "Request is too large");
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch {}
+  const value = schema.safeParse(parsed);
   if (!value.success)
     fail(400, value.error.issues[0]?.message ?? "Invalid request");
   return value.data;
@@ -60,4 +81,46 @@ export async function rateLimit(env: Env, key: string, max: number) {
     .bind(key, window)
     .first<{ count: number }>();
   if ((row?.count ?? 0) > max) fail(429, "Please wait a minute and try again");
+}
+
+export async function suspension(env: Env, uid: string) {
+  return env.DB.prepare("SELECT reason FROM suspensions WHERE user_id=?")
+    .bind(uid)
+    .first<{ reason: string }>();
+}
+// Live sockets are hints, but a removed or suspended person must stop receiving them immediately.
+export async function revokeLive(env: Env, uid: string, conversationIds: string[]) {
+  await Promise.all(
+    conversationIds.map((cid) =>
+      env.ROOMS.get(env.ROOMS.idFromName(cid))
+        .fetch("https://room/revoke", {
+          method: "POST",
+          body: JSON.stringify({ userId: uid }),
+        })
+        .catch(() => console.error(JSON.stringify({ category: "LIVE_REVOKE_FAILED", cid }))),
+    ),
+  );
+}
+export async function memberConversations(env: Env, uid: string) {
+  const rows = await env.DB.prepare(
+    "SELECT conversation_id FROM members WHERE user_id=?",
+  )
+    .bind(uid)
+    .all<{ conversation_id: string }>();
+  return rows.results.map((r) => r.conversation_id);
+}
+export function deleteMessageStatements(env: Env, mid: string) {
+  return [
+    env.DB.prepare(
+      "UPDATE messages SET state='deleted',text='',transcript=NULL,summary=NULL WHERE id=?",
+    ).bind(mid),
+    eventStatement(env, "delete", { messageId: mid }, `delete:${mid}`),
+  ];
+}
+
+// Appended to message INSERT ... SELECT statements; binds the message ID.
+export const NOT_DISCARDED = "NOT EXISTS(SELECT 1 FROM message_tombstones WHERE id=?)";
+export async function refuseDiscarded(env: Env, mid: string) {
+  if (await env.DB.prepare("SELECT 1 FROM message_tombstones WHERE id=?").bind(mid).first())
+    fail(410, "This message was discarded", "message_discarded");
 }

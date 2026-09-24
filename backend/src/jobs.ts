@@ -2,6 +2,7 @@ import type { Env, Job, Message } from "./types";
 import { transcribe } from "./transcription";
 import { Buffer } from "node:buffer";
 import { sendApplePush } from "./apple-push";
+import { sendEmail } from "./email";
 let fcmToken: { token: string; expires: number } | undefined;
 const b64 = (value: string | Uint8Array) =>
   Buffer.from(value).toString("base64url");
@@ -261,4 +262,120 @@ export async function scheduled(env: Env) {
   await env.DB.prepare("DELETE FROM rate_limits WHERE window<?")
     .bind(Math.floor(Date.now() / 60000) - 60)
     .run();
+  await pruneDiagnostics(env);
+  await sweepOrphanedMedia(env);
+  await checkAlerts(env);
+}
+
+export async function recordFailedJob(env: Env, job: Job, attempts: number) {
+  await env.DB.prepare(
+    "INSERT INTO failed_jobs VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET attempts=excluded.attempts,failed_at=excluded.failed_at",
+  )
+    .bind(job.id, job.kind, JSON.stringify(job.payload), attempts, Date.now())
+    .run();
+  console.error(JSON.stringify({ category: "JOB_DEAD_LETTERED", jobId: job.id, kind: job.kind }));
+}
+
+async function maintenanceValue(env: Env, key: string) {
+  const row = await env.DB.prepare("SELECT value FROM maintenance WHERE key=?")
+    .bind(key)
+    .first<{ value: string }>();
+  return row?.value ?? null;
+}
+async function setMaintenance(env: Env, key: string, value: string) {
+  await env.DB.prepare(
+    "INSERT INTO maintenance VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at",
+  )
+    .bind(key, value, Date.now())
+    .run();
+}
+
+const DIAGNOSTIC_RETENTION = 30 * 86400000;
+async function pruneDiagnostics(env: Env) {
+  const old = await env.DB.prepare(
+    "SELECT id FROM diagnostics WHERE created_at<? LIMIT 100",
+  )
+    .bind(Date.now() - DIAGNOSTIC_RETENTION)
+    .all<{ id: string }>();
+  for (const row of old.results) {
+    await env.MEDIA.delete(`diagnostics/${row.id}.json`);
+    await env.DB.prepare("DELETE FROM diagnostics WHERE id=?").bind(row.id).run();
+  }
+}
+
+// Reconciles R2 against D1 a page at a time. Anything written after its message was deleted, or never
+// recorded because a write raced a state change, is removed once it is old enough not to be in flight.
+const ORPHAN_AGE = 86400000;
+export async function sweepOrphanedMedia(env: Env, now = Date.now()) {
+  const cursor = await maintenanceValue(env, "media_sweep_cursor");
+  const page = await env.MEDIA.list({
+    prefix: "media/",
+    limit: 200,
+    ...(cursor ? { cursor } : {}),
+  });
+  let removed = 0;
+  for (const object of page.objects) {
+    const mid = object.key.split("/")[1] ?? "";
+    const message = await env.DB.prepare("SELECT state FROM messages WHERE id=?")
+      .bind(mid)
+      .first<{ state: string }>();
+    const deleted = !message || message.state === "deleted";
+    if (!deleted && object.key === `media/${mid}/live/init.mp4`) continue;
+    const referenced =
+      !deleted &&
+      (await env.DB.prepare(
+        `SELECT 1 FROM assets WHERE object_key=?1 UNION ALL SELECT 1 FROM live_segments WHERE object_key=?1
+         UNION ALL SELECT 1 FROM audio_chunks WHERE object_key=?1 UNION ALL SELECT 1 FROM uploads WHERE object_key=?1 AND state!='expired' LIMIT 1`,
+      )
+        .bind(object.key)
+        .first());
+    if (referenced || now - object.uploaded.getTime() < ORPHAN_AGE) continue;
+    await env.MEDIA.delete(object.key);
+    removed++;
+  }
+  if (removed)
+    console.log(JSON.stringify({ category: "ORPHANED_MEDIA_REMOVED", count: removed }));
+  await setMaintenance(
+    env,
+    "media_sweep_cursor",
+    page.truncated ? page.cursor : "",
+  );
+  return removed;
+}
+
+const ALERT_INTERVAL = 6 * 3600000;
+export async function operationalAlerts(env: Env, now = Date.now()) {
+  const [failed, report, outbox] = await Promise.all([
+    env.DB.prepare("SELECT COUNT(*) n FROM failed_jobs").first<{ n: number }>(),
+    env.DB.prepare(
+      "SELECT MIN(created_at) oldest FROM reports WHERE status='open'",
+    ).first<{ oldest: number | null }>(),
+    env.DB.prepare(
+      "SELECT MIN(created_at) oldest FROM outbox WHERE delivered_at IS NULL",
+    ).first<{ oldest: number | null }>(),
+  ]);
+  const alerts: { key: string; text: string }[] = [];
+  if (failed?.n)
+    alerts.push({ key: "failed_jobs", text: `${failed.n} background job(s) exhausted their retries.` });
+  if (report?.oldest && now - report.oldest > 24 * 3600000)
+    alerts.push({ key: "reports", text: "A user report has been waiting for review for more than 24 hours." });
+  if (outbox?.oldest && now - outbox.oldest > 15 * 60000)
+    alerts.push({ key: "outbox", text: "Notifications or deletions have been queued for more than 15 minutes." });
+  return alerts;
+}
+async function checkAlerts(env: Env) {
+  const alerts = await operationalAlerts(env);
+  for (const alert of alerts) {
+    console.error(JSON.stringify({ category: "OPERATIONAL_ALERT", alert: alert.key }));
+    if (!env.ALERT_EMAIL) continue;
+    const last = Number((await maintenanceValue(env, `alert:${alert.key}`)) ?? 0);
+    if (Date.now() - last < ALERT_INTERVAL) continue;
+    await sendEmail(env, {
+      to: env.ALERT_EMAIL,
+      subject: `Genoa alert: ${alert.key.replace("_", " ")}`,
+      text: `${alert.text}\n\nReview it in the Genoa admin console.`,
+    })
+      .then(() => setMaintenance(env, `alert:${alert.key}`, String(Date.now())))
+      .catch(() => console.error(JSON.stringify({ category: "ALERT_EMAIL_FAILED" })));
+  }
 }

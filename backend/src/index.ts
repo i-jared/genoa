@@ -1,16 +1,26 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
-import { auth } from "./auth";
+import { auth, SUSPENDED_MESSAGE } from "./auth";
 import { mobileAuth } from "./mobile-auth";
-import { body, fail, membership, rateLimit, eventStatement } from "./access";
+import {
+  ApiError,
+  body,
+  fail,
+  membership,
+  messageAccess,
+  rateLimit,
+  suspension,
+} from "./access";
 import { conversations } from "./conversations";
 import { messages } from "./messages";
 import { media } from "./media";
 import { ai } from "./ai";
 import { live } from "./live";
 import { account } from "./account";
-import { dispatch, runJob, scheduled } from "./jobs";
+import { admin } from "./admin";
+import { pages } from "./pages";
+import { dispatch, recordFailedJob, runJob, scheduled } from "./jobs";
 import type { AppEnv, Env, Job } from "./types";
 export { ConversationRoom } from "./realtime";
 const app = new Hono<AppEnv>();
@@ -21,6 +31,8 @@ app.use("*", async (c, next) => {
   await next();
 });
 app.onError((error, c) => {
+  if (error instanceof ApiError && error.code)
+    return c.json({ error: error.message, code: error.code }, error.status);
   if (error instanceof HTTPException)
     return c.json({ error: error.message }, error.status);
   console.error(
@@ -52,14 +64,15 @@ app.get("/join/:token", async (c) => {
   );
 });
 app.get("/health", (c) => c.json({ ok: true }));
+app.route("/", pages);
 app.route("/auth/mobile", mobileAuth);
 app.on(["POST", "GET"], "/auth/*", async (c) => {
-  await rateLimit(
-    c.env,
-    `auth:${c.req.header("cf-connecting-ip") ?? "local"}`,
-    20,
-  );
-  return auth(c.env).handler(c.req.raw);
+  const ip = c.req.header("cf-connecting-ip") ?? "local";
+  await rateLimit(c.env, `auth:${ip}`, 20);
+  // Each request sends an email, so keep this far below the general sign-in allowance.
+  if (c.req.path === "/auth/request-password-reset")
+    await rateLimit(c.env, `reset:${ip}`, 5);
+  return auth(c.env, c.executionCtx as ExecutionContext).handler(c.req.raw);
 });
 app.use("/api/*", async (c, next) => {
   const session = await auth(c.env).api.getSession({
@@ -68,6 +81,8 @@ app.use("/api/*", async (c, next) => {
   if (!session) fail(401, "Please sign in again");
   c.set("userId", session.user.id);
   await rateLimit(c.env, `api:${session.user.id}`, 300);
+  if (await suspension(c.env, session.user.id))
+    fail(403, SUSPENDED_MESSAGE, "account_suspended");
   await next();
   if (c.req.method !== "GET")
     c.executionCtx.waitUntil(
@@ -213,10 +228,51 @@ app.post("/api/reports", async (c) => {
       reason: z.string().min(1).max(2000),
     }),
   );
-  await c.env.DB.prepare("INSERT INTO reports VALUES(?,?,?,?,?)")
+  await messageAccess(c.env, message_id, c.get("userId"));
+  await c.env.DB.prepare(
+    "INSERT INTO reports(id,user_id,message_id,reason,created_at) VALUES(?,?,?,?,?)",
+  )
     .bind(crypto.randomUUID(), c.get("userId"), message_id, reason, Date.now())
     .run();
   return c.json({ ok: true });
+});
+const DIAGNOSTIC_LIMIT = 256 * 1024;
+app.post("/api/diagnostics", async (c) => {
+  const uid = c.get("userId");
+  await rateLimit(c.env, `diagnostics:${uid}`, 20);
+  const input = await body(
+    c,
+    z.object({
+      platform: z.enum(["ios", "android"]),
+      app_version: z.string().min(1).max(32),
+      build: z.string().min(1).max(32),
+      os_version: z.string().min(1).max(64),
+      kind: z.enum(["crash", "hang", "cpu", "disk", "other"]),
+      payload: z.record(z.string(), z.unknown()),
+    }),
+    DIAGNOSTIC_LIMIT,
+  );
+  const id = crypto.randomUUID(),
+    json = JSON.stringify(input.payload);
+  await c.env.MEDIA.put(`diagnostics/${id}.json`, json, {
+    httpMetadata: { contentType: "application/json" },
+  });
+  await c.env.DB.prepare(
+    "INSERT INTO diagnostics VALUES(?,?,?,?,?,?,?,?,?)",
+  )
+    .bind(
+      id,
+      uid,
+      input.platform,
+      input.app_version,
+      input.build,
+      input.os_version,
+      input.kind,
+      json.length,
+      Date.now(),
+    )
+    .run();
+  return c.json({ ok: true }, 202);
 });
 app.get("/api/conversations/:id/events", async (c) => {
   const cid = c.req.param("id"),
@@ -235,11 +291,19 @@ app.route("/api", media);
 app.route("/api", ai);
 app.route("/api", live);
 app.route("/api", account);
+app.route("/admin", admin);
 export default {
   fetch: app.fetch,
   scheduled: (_event: ScheduledController, env: Env, ctx: ExecutionContext) =>
     ctx.waitUntil(scheduled(env)),
   async queue(batch: MessageBatch<Job>, env: Env) {
+    if (batch.queue.endsWith("-failed")) {
+      for (const item of batch.messages) {
+        await recordFailedJob(env, item.body, item.attempts);
+        item.ack();
+      }
+      return;
+    }
     for (const item of batch.messages) {
       try {
         await runJob(env, item.body);

@@ -5,12 +5,28 @@ export class ConversationRoom extends DurableObject<Env> {
     const path = new URL(request.url).pathname;
     if (path === "/event") {
       const event = await request.text();
-      for (const ws of this.ctx.getWebSockets())
+      const sockets = this.ctx.getWebSockets();
+      if (!sockets.length) return new Response("ok");
+      // Revocation can be missed (e.g. a failed revoke call), so every broadcast rechecks membership.
+      const { cid } = sockets[0]!.deserializeAttachment() as { cid: string };
+      const members = await this.env.DB.prepare(
+        "SELECT user_id FROM members WHERE conversation_id=? AND NOT EXISTS(SELECT 1 FROM suspensions s WHERE s.user_id=members.user_id)",
+      )
+        .bind(cid)
+        .all<{ user_id: string }>();
+      const allowed = new Set(members.results.map((m) => m.user_id));
+      for (const ws of sockets) {
+        const { userId } = ws.deserializeAttachment() as { userId: string };
+        if (!allowed.has(userId)) {
+          ws.close(1008, "Membership ended");
+          continue;
+        }
         try {
           ws.send(event);
         } catch {
           ws.close();
         }
+      }
       return new Response("ok");
     }
     if (path === "/revoke") {
@@ -63,12 +79,22 @@ export class ConversationRoom extends DurableObject<Env> {
         ws.send('{"type":"pong"}');
         return;
       }
-      for (const client of this.ctx.getWebSockets())
-        if (client !== ws)
-          client.send(JSON.stringify({ type: message.type, userId }));
+      const members = await this.env.DB.prepare(
+        "SELECT user_id FROM members WHERE conversation_id=?",
+      )
+        .bind(cid)
+        .all<{ user_id: string }>();
+      const allowed = new Set(members.results.map((m) => m.user_id));
+      for (const client of this.ctx.getWebSockets()) {
+        if (client === ws) continue;
+        const peer = (client.deserializeAttachment() as { userId: string }).userId;
+        if (!allowed.has(peer)) client.close(1008, "Membership ended");
+        else client.send(JSON.stringify({ type: message.type, userId }));
+      }
     }
   }
   webSocketClose(ws: WebSocket, code: number, reason: string) {
-    ws.close(code, reason);
+    // 1005/1006 describe a missing or abnormal close and can't be sent back.
+    ws.close(code === 1005 || code === 1006 ? 1000 : code, reason);
   }
 }

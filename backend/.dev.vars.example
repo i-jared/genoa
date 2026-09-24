@@ -9,3 +9,11 @@ BETTER_AUTH_SECRET=replace-with-at-least-32-random-characters
 # R2_ACCESS_KEY_ID=...
 # R2_SECRET_ACCESS_KEY=...
 # FCM_SERVICE_ACCOUNT={...}
+# Account email (password reset, verification, operational alerts). Without these, development
+# stores emails in a local dev_emails table and production hides "Forgot password?".
+# RESEND_API_KEY=...
+# EMAIL_FROM=Genoa <no-reply@talkgenoa.com>
+# SUPPORT_EMAIL=support@talkgenoa.com
+# ALERT_EMAIL=ops@talkgenoa.com
+# ADMIN_URL=https://admin.talkgenoa.com   (origin of the admin console; trusted for sign-in)
+# ACCOUNT_STORAGE_QUOTA_BYTES=26843545600   (defaults to 25 GiB)
