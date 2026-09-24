@@ -293,7 +293,7 @@ struct WatchScreen: View {
       } label: {
         GenoaIcon(name: "video", size: 32).frame(width: 72, height: 64).background(
           Genoa.coral, in: Capsule())
-      }.accessibilityLabel("Record a live reply").accessibilityIdentifier("watch.record")
+      }.accessibilityLabel("Share a live reply").accessibilityIdentifier("watch.record")
       Spacer()
       Color.clear.frame(width: 56, height: 56)
     }.foregroundStyle(.white).padding(.horizontal, 16).padding(.bottom, 8)
@@ -312,7 +312,7 @@ struct WatchScreen: View {
     model.playback.stop()
     watch.finished = true
     capture = CaptureDestination(
-      conversation: conversation, kind: kind, live: live, reply: watch.current?.id, immediate: live)
+      conversation: conversation, kind: kind, live: live, reply: watch.current?.id)
   }
   func select(_ m: Message, autoplay: Bool = false) {
     stopDwell()

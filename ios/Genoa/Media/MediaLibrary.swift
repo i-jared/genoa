@@ -1,4 +1,5 @@
 import AVFoundation
+import ImageIO
 import Photos
 import SwiftUI
 import UIKit
@@ -24,11 +25,23 @@ enum MediaLibrary {
     guard bytes > 0 && Int64(bytes) <= 8 * 1024 * 1024 * 1024 else {
       throw APIError(status: 0, message: "Choose a nonempty file up to 8 GiB.")
     }
+    // The copy must not exhaust the phone: keep headroom for recording and the system.
+    if let free = LiveSegmentSink.availableCapacity(), Int64(bytes) + 512 * 1024 * 1024 > free {
+      throw APIError(
+        status: 0, message: "Not enough free space on this iPhone to import this file.")
+    }
     var draft = Draft(
       conversationId: conversation, owner: credentials.account, filename: "", kind: kind,
       mime: mime, replyTo: reply)
     draft.filename = "\(draft.id).\(ext)"
-    if kind != "photo" {
+    if kind == "photo" {
+      guard let source = CGImageSourceCreateWithURL(file as CFURL, nil),
+        CGImageSourceGetCount(source) > 0,
+        CGImageSourceCopyPropertiesAtIndex(source, 0, nil) != nil
+      else {
+        throw APIError(status: 0, message: "This image can’t be opened. Choose a JPEG or PNG.")
+      }
+    } else {
       let asset = AVURLAsset(url: file)
       guard try await asset.load(.isPlayable) else {
         throw APIError(

@@ -54,22 +54,23 @@ final class LocalStoreTests: XCTestCase {
     let restored = await reopened.snapshot().progress.first
     XCTAssertEqual(restored, current)
   }
-  func testSendingDraftCannotBeDiscardedAndSavedDraftDeletesFile() async throws {
+  func testActiveLiveDraftCannotBeDiscardedAndSavedDraftDeletesFile() async throws {
     let store = try LocalStore(account: "alice", root: root)
     var draft = Draft(
       conversationId: "conversation", owner: "alice", filename: "clip.mp4", kind: "video",
-      mime: "video/mp4", state: .uploading)
+      mime: "video/mp4", state: .uploading, live: true)
     let file = await store.file(draft.filename)
     try Data([1]).write(to: file)
     try await store.save(draft)
     do {
-      try await store.remove(draft.id)
-      XCTFail("Deleted active upload")
+      try await store.discard(draft.id)
+      XCTFail("Discarded a live stream recipients may be watching")
     } catch {}
     XCTAssertTrue(FileManager.default.fileExists(atPath: file.path))
     draft.state = .saved
+    draft.live = false
     try await store.save(draft)
-    try await store.remove(draft.id)
+    try await store.discard(draft.id)
     XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
   }
   func testInterruptedMultipartUploadResumesAtServerConfirmedPartAndFinalResponseCanBeRetried()

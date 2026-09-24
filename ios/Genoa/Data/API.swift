@@ -3,8 +3,12 @@ import Foundation
 struct APIError: LocalizedError {
   let status: Int
   let message: String
+  /// Machine-readable server code, such as `storage_quota` or `account_suspended`.
+  var code: String? = nil
   var errorDescription: String? { message }
   var accessDenied: Bool { [401, 403, 404].contains(status) }
+  /// Better Auth reports ACCOUNT_SUSPENDED on sign-in; the app API uses account_suspended.
+  var suspended: Bool { status == 403 && code?.lowercased() == "account_suspended" }
 }
 struct API: Sendable {
   let endpoint: URL
@@ -55,6 +59,13 @@ struct API: Sendable {
   func mutate(_ path: String, method: String = "POST", body: [String: Any] = [:]) async throws {
     _ = try await data(path, method: method, body: body)
   }
+  /// Posts an already-encoded JSON body, used where the body is persisted before sending.
+  func post(_ path: String, json: Data) async throws {
+    var req = try request(path, method: "POST")
+    req.httpBody = json
+    let (data, response) = try await session.data(for: req)
+    try Self.validate(response, data: data)
+  }
   func put(_ path: String, file: URL) async throws {
     var req = try request(path, method: "PUT")
     req.httpBody = nil
@@ -68,10 +79,12 @@ struct API: Sendable {
     }
     guard (200...299).contains(http.statusCode) else {
       let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+      let message = (json?["error"] as? String ?? json?["message"] as? String).map {
+        String($0.prefix(500))
+      }
       throw APIError(
-        status: http.statusCode,
-        message: json?["error"] as? String ?? json?["message"] as? String
-          ?? "Request failed. Try again.")
+        status: http.statusCode, message: message ?? "Request failed. Try again.",
+        code: (json?["code"] as? String).map { String($0.prefix(64)) })
     }
   }
   func signIn(email: String, password: String, name: String?, invite: String) async throws

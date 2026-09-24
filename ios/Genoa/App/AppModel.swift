@@ -27,6 +27,7 @@ final class AppModel: ObservableObject {
   let playback = PlaybackController()
   let transfer = BackgroundTransfer()
   let thumbnails = ThumbnailStore()
+  let diagnostics = DiagnosticsCollector()
   private(set) var store: LocalStore?
   private(set) var outbox: Outbox?
   var api: API? { credentials.map { API(endpoint: $0.endpoint, token: $0.token) } }
@@ -49,6 +50,7 @@ final class AppModel: ObservableObject {
       if status.status == .satisfied { Task { @MainActor in await self?.refresh() } }
     }
     monitor.start(queue: DispatchQueue(label: "genoa.connectivity"))
+    diagnostics.start()
   }
   func restore() async {
     do {
@@ -81,12 +83,13 @@ final class AppModel: ObservableObject {
     let cached = await store.snapshot()
     person = cached.person
     conversations = cached.conversations
-    drafts = cached.drafts
+    drafts = cached.drafts.filter { $0.state != .discarded }
     let api = API(endpoint: c.endpoint, token: c.token)
     let outbox = Outbox(api: api, store: store, transfer: transfer)
     self.outbox = outbox
     await outbox.onChange { [weak self] in await self?.reloadLocal() }
     playback.configure(api: api, store: store) { [weak self] in await self?.reloadLocal() }
+    diagnostics.attach { body in try? await store.enqueueDiagnostic(body) }
     for draft in cached.drafts where draft.state == .sent {
       try? await store.releaseAcceptedMedia(draft.id)
     }
@@ -122,11 +125,30 @@ final class AppModel: ObservableObject {
     } catch { self.error = error.localizedDescription }
   }
   @Published var loginProviders: [String] = []
+  /// False until the server has an email provider; the reset link is hidden until then.
+  @Published var passwordReset = false
   func loadLoginProviders() async {
-    struct Providers: Decodable { let providers: [String] }
+    struct Providers: Decodable {
+      let providers: [String]
+      let passwordReset: Bool?
+    }
     if let result: Providers = try? await API(endpoint: endpoint).call("/auth/mobile/providers") {
       loginProviders = result.providers.filter { ["google", "apple"].contains($0) }
+      passwordReset = result.passwordReset == true
     }
+  }
+  /// The server answers identically for unknown emails, so the confirmation stays neutral.
+  func requestPasswordReset(email: String) async throws {
+    try await API(endpoint: endpoint).mutate(
+      "/auth/request-password-reset",
+      body: ["email": email, "redirectTo": page("reset-password").absoluteString])
+  }
+  /// Worker-hosted public pages: terms, privacy, support, reset-password.
+  func page(_ name: String) -> URL { endpoint.appendingPathComponent(name) }
+  func discard(_ draft: Draft) async throws {
+    guard let outbox else { return }
+    try await outbox.discard(draft.id)
+    await reloadLocal()
   }
   func socialSignIn(provider: String, flow: SocialSignIn) async {
     guard !busy else { return }
@@ -153,7 +175,7 @@ final class AppModel: ObservableObject {
     let id = sessionID
     let state = await store.snapshot()
     guard id == sessionID else { return }
-    drafts = state.drafts
+    drafts = state.drafts.filter { $0.state != .discarded }
     conversations = state.conversations
   }
   func refresh() async {
@@ -177,8 +199,11 @@ final class AppModel: ObservableObject {
       await reloadLocal()
       await registerDeviceIfNeeded()
       await routePendingTarget()
+      await DiagnosticReport.flush(store: store, api: api)
     } catch let e as APIError where e.status == 401 {
       await expireSession()
+    } catch let e as APIError where e.suspended {
+      await expireSession(message: e.message)
     } catch { notice = "Connection paused. Your saved messages are safe. Pull to refresh." }
   }
   func setActive(_ active: Bool) {
@@ -196,7 +221,11 @@ final class AppModel: ObservableObject {
     }
   }
   func perform(_ operation: () async throws -> Void) async {
-    do { try await operation() } catch is CancellationError {} catch {
+    do { try await operation() } catch is CancellationError {} catch let e as APIError
+      where e.suspended && credentials != nil
+    {
+      await expireSession(message: e.message)
+    } catch {
       self.error = error.localizedDescription
     }
   }
@@ -211,11 +240,17 @@ final class AppModel: ObservableObject {
       }
       try await api?.mutate("/auth/sign-out")
       try SessionVault.clear()
+      await store?.dropDiagnostics()
       await clearSession()
     } catch { self.error = "Couldn’t finish signing out: \(error.localizedDescription)" }
   }
-  func expireSession() async {
+  /// Also used for suspension: drafts stay on this iPhone, nothing is shown as sent, and the
+  /// server's explanation appears on the sign-in screen.
+  func expireSession(
+    message: String = "Your session expired. Sign in again to recover your saved drafts."
+  ) async {
     playback.stop()
+    diagnostics.detach()
     await clearReminderAlerts()
     await outbox?.stop()
     await transfer.cancelAll()
@@ -228,10 +263,11 @@ final class AppModel: ObservableObject {
     store = nil
     outbox = nil
     sessionID = UUID()
-    error = "Your session expired. Sign in again to recover your saved drafts."
+    error = message
   }
   func clearSession() async {
     playback.stop()
+    diagnostics.detach()
     await clearReminderAlerts()
     await outbox?.stop()
     await transfer.cancelAll()

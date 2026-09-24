@@ -141,7 +141,9 @@ struct UploadStatus: Codable {
 }
 
 enum DraftState: String, Codable {
-  case recording, saved, queued, uploading, processing, blocked, failed, sent
+  // `discarded` is a durable tombstone: the person asked to delete this draft and the
+  // server has not yet confirmed that no message with this stable ID exists.
+  case recording, saved, queued, uploading, processing, blocked, failed, sent, discarded
 }
 struct Draft: Codable, Identifiable, Equatable {
   var id = UUID().uuidString.lowercased()
@@ -160,6 +162,8 @@ struct Draft: Codable, Identifiable, Equatable {
   var live = false
   var liveEnded = false
   var createdAt = Date()
+  /// Set with the discard tombstone when the server must confirm deletion by this ID.
+  var discardRemote: Bool?
   var label: String {
     switch state {
     case .recording: return "Recording interrupted · local file preserved"
@@ -168,11 +172,22 @@ struct Draft: Codable, Identifiable, Equatable {
     case .uploading: return "Uploading · \(percent)%"
     case .processing: return "Processing your message…"
     case .blocked: return "Access changed · recording saved"
-    case .failed: return "Upload paused · recording saved"
+    case .failed: return "Couldn’t send · recording saved"
     case .sent: return "Sent"
+    case .discarded: return "Discarded"
     }
   }
-  var mayDiscard: Bool { [.saved, .failed, .blocked, .recording, .sent].contains(state) && !live }
+  /// Live messages were already visible to recipients; they can be discarded only once the
+  /// stream has ended and sending stopped with an error that needs a decision.
+  var mayDiscard: Bool {
+    switch state {
+    case .sent, .discarded: return false
+    case .blocked, .failed: return true
+    default: return !live
+    }
+  }
+  /// A remote message may exist once sending was attempted; private saved drafts never upload.
+  var mayExistOnServer: Bool { live || ![.saved, .recording].contains(state) }
 }
 struct WatchProgress: Codable, Equatable {
   let messageId: String
@@ -189,6 +204,8 @@ struct LiveSegment: Codable, Identifiable {
   let filename: String
   let duration: Double
   var uploaded = false
+  // Optional so stores written before fragment accounting still decode.
+  var bytes: Int?
 }
 struct Credentials: Codable, Equatable {
   let endpoint: URL

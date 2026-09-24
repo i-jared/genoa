@@ -2,6 +2,8 @@ import Foundation
 
 // File-backed URLSession tasks may finish while suspended. On relaunch, the
 // server's part list is authoritative; no local callback is required for safety.
+// A late completion only resumes a waiting continuation: it never writes draft state,
+// so it cannot resurrect a discarded draft.
 final class BackgroundTransfer: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
   private let lock = NSLock()
   private var continuations: [Int: CheckedContinuation<Void, Error>] = [:]
@@ -21,9 +23,10 @@ final class BackgroundTransfer: NSObject, URLSessionTaskDelegate, @unchecked Sen
     storedSession = session
     return session
   }
-  func upload(request: URLRequest, file: URL) async throws {
+  func upload(request: URLRequest, file: URL, draft: String) async throws {
     try await withCheckedThrowingContinuation { continuation in
       let task = session.uploadTask(with: request, fromFile: file)
+      task.taskDescription = draft
       lock.lock()
       continuations[task.taskIdentifier] = continuation
       lock.unlock()
@@ -38,6 +41,10 @@ final class BackgroundTransfer: NSObject, URLSessionTaskDelegate, @unchecked Sen
   }
   func cancelAll() async {
     for task in await session.allTasks { task.cancel() }
+  }
+  /// Includes tasks restored from an earlier launch, which carry the same description.
+  func cancel(draft: String) async {
+    for task in await session.allTasks where task.taskDescription == draft { task.cancel() }
   }
   func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
     lock.lock()

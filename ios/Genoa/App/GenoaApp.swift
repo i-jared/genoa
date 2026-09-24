@@ -144,7 +144,7 @@ struct RootView: View {
         RecipientPicker(title: "Record for…") { c in
           chooseRecipient = false
           capture = CaptureDestination(
-            conversation: c, kind: "video", live: true, reply: nil, immediate: false)
+            conversation: c, kind: "video", live: true, reply: nil)
         }
       }
       .fullScreenCover(item: $capture) { RecorderScreen(destination: $0) }

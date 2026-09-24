@@ -38,9 +38,15 @@ actor LocalStore {
       options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     state = next
   }
+  /// Thrown when late work tries to write a draft the person already discarded.
+  struct DraftDiscarded: Error {}
   func save(_ draft: Draft) throws {
     guard draft.owner == account else {
       throw APIError(status: 0, message: "This draft belongs to a different account.")
+    }
+    // Writers hold whole-draft snapshots; a tombstone must never be overwritten by one.
+    if state.drafts.contains(where: { $0.id == draft.id && $0.state == .discarded }) {
+      throw DraftDiscarded()
     }
     try commit { s in
       s.drafts.removeAll { $0.id == draft.id }
@@ -48,12 +54,45 @@ actor LocalStore {
     }
   }
   func draft(_ id: String) -> Draft? { state.drafts.first { $0.id == id } }
-  func remove(_ id: String) throws {
-    guard let draft = draft(id), draft.mayDiscard else {
-      throw APIError(status: 0, message: "Wait for sending to finish before discarding.")
+  func isDiscarded(_ id: String) -> Bool {
+    state.drafts.contains { $0.id == id && $0.state == .discarded }
+  }
+  /// Persists the terminal discard before any cleanup, so a crash, late network response,
+  /// or background transfer cannot bring the draft back. Returns true when the server must
+  /// still confirm deletion of the stable message ID.
+  @discardableResult func discard(_ id: String) throws -> Bool {
+    guard var draft = draft(id) else { return false }
+    if draft.state == .discarded { return draft.discardRemote == true }
+    guard draft.mayDiscard else {
+      throw APIError(status: 0, message: "Finish live sharing before discarding.")
     }
-    try commit { $0.drafts.removeAll { $0.id == id } }
-    if !draft.filename.isEmpty { try? FileManager.default.removeItem(at: file(draft.filename)) }
+    let remote = draft.mayExistOnServer
+    draft.state = .discarded
+    draft.discardRemote = remote
+    draft.error = nil
+    let names = localFiles(id, draft: draft)
+    try commit { s in
+      s.drafts.removeAll { $0.id == id }
+      if remote { s.drafts.append(draft) }
+      s.segments.removeAll { $0.messageId == id }
+    }
+    for name in names { try? FileManager.default.removeItem(at: file(name)) }
+    return remote
+  }
+  /// Called only after the server confirmed that no message with this ID remains.
+  func purgeDiscarded(_ id: String) throws {
+    guard isDiscarded(id) else { return }
+    let names = localFiles(id, draft: nil)
+    try commit { $0.drafts.removeAll { $0.id == id && $0.state == .discarded } }
+    for name in names { try? FileManager.default.removeItem(at: file(name)) }
+  }
+  private func localFiles(_ id: String, draft: Draft?) -> [String] {
+    var names = state.segments.filter { $0.messageId == id }.map(\.filename)
+    if let draft, !draft.filename.isEmpty { names.append(draft.filename) }
+    names += ((try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []).filter {
+      $0.hasPrefix(id + "-part-")
+    }
+    return names
   }
   func importFile(_ source: URL, draft: Draft) throws {
     let target = file(draft.filename)
@@ -116,7 +155,13 @@ actor LocalStore {
       return m
     }
   }
+  /// Fragments waiting for upload; bounds live buffering during a slow connection.
+  func pendingSegments(_ messageId: String) -> (count: Int, bytes: Int) {
+    let rows = state.segments.filter { $0.messageId == messageId && !$0.uploaded }
+    return (rows.count, rows.reduce(0) { $0 + ($1.bytes ?? 0) })
+  }
   func segment(_ segment: LiveSegment, data: Data) throws {
+    guard !isDiscarded(segment.messageId) else { throw DraftDiscarded() }
     try data.write(
       to: file(segment.filename),
       options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
@@ -130,6 +175,7 @@ actor LocalStore {
     }
   }
   func chunk(_ draft: Draft, number: Int, size: Int) throws -> URL {
+    guard !isDiscarded(draft.id) else { throw DraftDiscarded() }
     guard (1...8 * 1024 * 1024).contains(size), number > 0 else {
       throw APIError(status: 0, message: "Invalid upload chunk size.")
     }
@@ -164,6 +210,38 @@ actor LocalStore {
       s.drafts.removeAll { ids.contains($0.id) }
     }
   }
+  // Diagnostics live in separate files so large reports never slow state.json commits.
+  private var diagnosticsDirectory: URL { directory.appendingPathComponent("diagnostics") }
+  func enqueueDiagnostic(_ body: Data) throws {
+    guard !body.isEmpty, body.count <= DiagnosticReport.maxBody else { return }
+    try FileManager.default.createDirectory(
+      at: diagnosticsDirectory, withIntermediateDirectories: true,
+      attributes: [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication])
+    // Names sort oldest first, so the stamp must strictly increase even within one millisecond.
+    let now = Int64(Date().timeIntervalSince1970 * 1000)
+    let last = pendingDiagnostics().last.flatMap { Int64($0.lastPathComponent.prefix(15)) } ?? 0
+    let stamp = String(format: "%015lld", max(now, last + 1))
+    try body.write(
+      to: diagnosticsDirectory.appendingPathComponent("\(stamp)-\(UUID().uuidString).json"),
+      options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+    for old in pendingDiagnostics().dropLast(DiagnosticReport.queueLimit) {
+      try? FileManager.default.removeItem(at: old)
+    }
+  }
+  /// Oldest first.
+  func pendingDiagnostics() -> [URL] {
+    let names =
+      (try? FileManager.default.contentsOfDirectory(atPath: diagnosticsDirectory.path)) ?? []
+    return names.filter { $0.hasSuffix(".json") }.sorted().map {
+      diagnosticsDirectory.appendingPathComponent($0)
+    }
+  }
+  func removeDiagnostic(_ file: URL) {
+    guard file.deletingLastPathComponent().standardizedFileURL == diagnosticsDirectory.standardizedFileURL
+    else { return }
+    try? FileManager.default.removeItem(at: file)
+  }
+  func dropDiagnostics() { try? FileManager.default.removeItem(at: diagnosticsDirectory) }
   func eraseAccount() throws {
     try FileManager.default.removeItem(at: directory)
     state = State()

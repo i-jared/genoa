@@ -80,10 +80,15 @@ struct ProfileScreen: View {
         group("About Genoa") {
           HStack {
             Image("Brand").resizable().scaledToFit().frame(width: 32, height: 32)
-            Text("Genoa for iOS · 0.1.0")
+            Text(
+              "Genoa for iOS · \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")"
+            )
           }
           Link("talkgenoa.com", destination: URL(string: "https://talkgenoa.com")!).frame(
             minHeight: 48)
+          Link("Terms", destination: model.page("terms")).frame(minHeight: 48)
+          Link("Privacy Policy", destination: model.page("privacy")).frame(minHeight: 48)
+          Link("Support", destination: model.page("support")).frame(minHeight: 48)
         }
         Button("Sign out") { signout = true }.frame(maxWidth: .infinity, minHeight: 48).overlay(
           RoundedRectangle(cornerRadius: 16).stroke(Genoa.teal)

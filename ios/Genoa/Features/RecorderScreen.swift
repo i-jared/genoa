@@ -7,7 +7,6 @@ struct CaptureDestination: Identifiable {
   let kind: String
   let live: Bool
   let reply: String?
-  let immediate: Bool
 }
 struct RecorderScreen: View {
   @EnvironmentObject var model: AppModel
@@ -23,7 +22,7 @@ struct RecorderScreen: View {
   @State private var discard = false
   @State private var notes = false
   @State private var segmentSink: LiveSegmentSink?
-  @State private var liveFailure: String?
+  @State private var delivery = LiveDelivery.sharing
   @State private var preview: AVPlayer?
   @State private var queuedNotice = false
   var body: some View {
@@ -43,17 +42,28 @@ struct RecorderScreen: View {
           Spacer()
           IconButton(icon: "more", label: "Private scratchpad") { notes = true }
         }.padding(.horizontal, 8).background(.black.opacity(0.65))
+        if engine.recording && sharing && delivery == .sharing {
+          // Unmistakable while others can watch; text, not color alone, carries the state.
+          HStack(spacing: 6) {
+            Circle().fill(.white).frame(width: 8, height: 8).accessibilityHidden(true)
+            Text("LIVE · \(destination.conversation.title) can watch now")
+          }.font(.subheadline.bold()).padding(.horizontal, 12).padding(.vertical, 6)
+            .background(Genoa.coral, in: Capsule()).accessibilityElement(children: .combine)
+            .accessibilityIdentifier("recorder.live")
+        }
         if engine.recording {
           Text(durationLabel(engine.elapsed)).font(.title.monospacedDigit()).padding(8).background(
             .black.opacity(0.65), in: Capsule())
         }
-        if let problem = liveFailure ?? engine.error {
+        if let problem = (sharing ? delivery.message : nil) ?? engine.error {
           VStack {
             Text(problem)
-            if !engine.recording {
+            if engine.recording, case .stopped = delivery {
+              Button("Stop and save recording") { Task { await finish() } }.frame(minHeight: 48)
+            } else if !engine.recording {
               Button("Open Settings") {
                 UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!)
-              }
+              }.frame(minHeight: 48)
             }
           }.font(.callout).padding(12).background(
             .black.opacity(0.8), in: RoundedRectangle(cornerRadius: 12))
@@ -92,7 +102,7 @@ struct RecorderScreen: View {
             if queuedNotice { Text("Message queued. Ready for another?").font(.footnote) }
             Text(
               destination.live
-                ? "Start sharing live with \(destination.conversation.title). They can watch while you record."
+                ? "Live: \(destination.conversation.title) can watch as soon as you tap Start sharing live."
                 : "Private recording. Review before sending."
             ).font(.footnote).multilineTextAlignment(.center).padding(8).background(
               .black.opacity(0.65), in: RoundedRectangle(cornerRadius: 12))
@@ -109,9 +119,10 @@ struct RecorderScreen: View {
                 Text(
                   engine.recording
                     ? (destination.live ? "End live sharing" : "Stop")
-                    : destination.live ? "Share live" : "Record"
-                ).font(.caption)
-              }.frame(minWidth: 96, minHeight: 72).background(Genoa.coral, in: Capsule())
+                    : destination.live ? "Start sharing live" : "Record"
+                ).font(.caption).multilineTextAlignment(.center)
+              }.padding(.horizontal, 12).frame(minWidth: 96, minHeight: 72).background(
+                Genoa.coral, in: Capsule())
             }.disabled(!engine.ready).accessibilityIdentifier("recorder.record")
             Spacer()
             Color.clear.frame(width: 48, height: 48)
@@ -126,11 +137,13 @@ struct RecorderScreen: View {
       model.isCapturing = true
       do {
         try await engine.prepare(kind: destination.kind)
-        if destination.immediate { await begin() }
       } catch { engine.error = error.localizedDescription }
     }
     .onDisappear {
       preview?.pause()
+      // Finalization must not depend on this view: if it is torn down while recording
+      // (for example the session ended), still finish the file and hand it to the outbox.
+      if engine.recording { Task { await finish(close: true) } }
       engine.shutdown()
       model.isCapturing = false
       Task { await model.refresh() }
@@ -140,6 +153,13 @@ struct RecorderScreen: View {
     }
     .onChange(of: engine.elapsed) { _, elapsed in
       if elapsed >= 86400 && engine.recording { Task { await finish() } }
+      if engine.recording && Int(elapsed) % 10 == 0,
+        let free = LiveSegmentSink.availableCapacity(), free < 200 * 1024 * 1024
+      {
+        // Setting the error finishes the recording below while the file can still close.
+        engine.error =
+          "This iPhone is almost out of storage, so recording stopped. Your recording was saved."
+      }
     }
     .onChange(of: engine.error) { _, value in
       if value != nil && engine.recording { Task { await finish() } }
@@ -149,7 +169,7 @@ struct RecorderScreen: View {
       Button("Discard recording", role: .destructive) {
         Task {
           await model.perform {
-            if let draft { try await model.store?.remove(draft.id) }
+            if let draft { try await model.discard(draft) }
             await model.reloadLocal()
             dismiss()
           }
@@ -161,7 +181,11 @@ struct RecorderScreen: View {
   var status: String {
     if saving { return "SAVING" }
     if sharing && engine.recording {
-      return liveFailure == nil ? "SHARING LIVE" : "LIVE CONNECTION PAUSED"
+      switch delivery {
+      case .sharing: return "SHARING LIVE"
+      case .paused: return "LIVE CONNECTION PAUSED"
+      case .stopped: return "LIVE SHARING STOPPED · STILL RECORDING"
+      }
     }
     if engine.recording { return "RECORDING · PRIVATE" }
     if review { return "READY TO SEND" }
@@ -193,8 +217,9 @@ struct RecorderScreen: View {
         sharing = true
       }
       guard let outbox = model.outbox else { throw CancellationError() }
+      delivery = .sharing
       let sink = LiveSegmentSink(store: store, outbox: outbox, messageId: d.id) { value in
-        await MainActor.run { liveFailure = value }
+        await MainActor.run { delivery = value }
       }
       segmentSink = sink
       try await engine.start(
@@ -234,7 +259,12 @@ struct RecorderScreen: View {
   func finish(close: Bool = false) async {
     guard !saving, let store = model.store, var d = draft else { return }
     saving = true
-    defer { saving = false }
+    // Backgrounding triggers this; keep running until the file is closed and the draft saved.
+    let background = UIApplication.shared.beginBackgroundTask(withName: "Finish recording")
+    defer {
+      saving = false
+      if background != .invalid { UIApplication.shared.endBackgroundTask(background) }
+    }
     do {
       d.durationMs = Int64(try await engine.stop() * 1000)
       await segmentSink?.drain()
@@ -299,8 +329,7 @@ struct DraftCard: View {
       Button("Discard", role: .destructive) {
         Task {
           await model.perform {
-            try await model.store?.remove(draft.id)
-            await model.reloadLocal()
+            try await model.discard(draft)
           }
         }
       }

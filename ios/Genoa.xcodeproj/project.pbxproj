@@ -34,8 +34,10 @@
 		D6B23544C5A5C22AD0B56161 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BECE611FA27076E5BDC4AE67 /* AppModel.swift */; };
 		D87EBC7E57AA9D7F5CFB8C2F /* SessionVault.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F9FE3B4661A5D1F0840E342 /* SessionVault.swift */; };
 		DA69FD94176E88EA0B9F5F4B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0501FCC8447886881AA1DCD2 /* Models.swift */; };
+		DAED00CD76036115810AFA4D /* Diagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 304AB07FE705DCF7D9B22DE2 /* Diagnostics.swift */; };
 		E15A578B15FFC76B99A6274E /* MediaLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 413AA17ED2B97D8A61FB7AC0 /* MediaLibrary.swift */; };
 		E8504056700D78672ED44B3E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6D332ED59A98802F08653486 /* Assets.xcassets */; };
+		E8863980DC20B0FC6DB017FF /* ReliabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9BC67D2F80063F4FF8AC8BB /* ReliabilityTests.swift */; };
 		F395F218F19725BC0AE9C27C /* StoreScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9E7AD3AE485B40D4AA3A55 /* StoreScreenshotTests.swift */; };
 		FF6EF5354E00B49555261E68 /* Thumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3212FDE58DE3FF5F9BCF06 /* Thumbnails.swift */; };
 /* End PBXBuildFile section */
@@ -67,6 +69,7 @@
 		2BFD75DC962E7B7FD3054BE7 /* LocalStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalStoreTests.swift; sourceTree = "<group>"; };
 		2F9FE3B4661A5D1F0840E342 /* SessionVault.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVault.swift; sourceTree = "<group>"; };
 		3043EEDF28ED47B7746F1510 /* API.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = API.swift; sourceTree = "<group>"; };
+		304AB07FE705DCF7D9B22DE2 /* Diagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diagnostics.swift; sourceTree = "<group>"; };
 		3D9E5786EDE451039F315BD5 /* GenoaTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GenoaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4117DBF442372F12ADEA18F1 /* Genoa.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Genoa.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		413AA17ED2B97D8A61FB7AC0 /* MediaLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLibrary.swift; sourceTree = "<group>"; };
@@ -85,6 +88,7 @@
 		AFC81A932AB3372DF12F25E3 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BEC6E484D9673607A9BA4736 /* WatchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchScreen.swift; sourceTree = "<group>"; };
 		BECE611FA27076E5BDC4AE67 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		C9BC67D2F80063F4FF8AC8BB /* ReliabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReliabilityTests.swift; sourceTree = "<group>"; };
 		D4FCA2F162988AB65ECA9EC5 /* Genoa.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Genoa.entitlements; sourceTree = "<group>"; };
 		E4D5194D01D501EEB4E03B45 /* LiveSegmentSink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSegmentSink.swift; sourceTree = "<group>"; };
 		E596AEEAFF0FE5059B9CFA8A /* SessionVaultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVaultTests.swift; sourceTree = "<group>"; };
@@ -102,6 +106,7 @@
 			children = (
 				3043EEDF28ED47B7746F1510 /* API.swift */,
 				F82C558F5810D9720090D7FC /* BackgroundTransfer.swift */,
+				304AB07FE705DCF7D9B22DE2 /* Diagnostics.swift */,
 				65916675199A77E293676E21 /* LocalStore.swift */,
 				0501FCC8447886881AA1DCD2 /* Models.swift */,
 				028BECAEEC9B125D79B03F5D /* Outbox.swift */,
@@ -213,6 +218,7 @@
 			children = (
 				719D7C51DFF78831C018D80C /* IntegrationTests.swift */,
 				2BFD75DC962E7B7FD3054BE7 /* LocalStoreTests.swift */,
+				C9BC67D2F80063F4FF8AC8BB /* ReliabilityTests.swift */,
 				E596AEEAFF0FE5059B9CFA8A /* SessionVaultTests.swift */,
 				5E2218CAEEDE33ED31526FDF /* WatchSelectionTests.swift */,
 			);
@@ -345,6 +351,7 @@
 				42F04D0BB28248E72694C88C /* CaptureEngine.swift in Sources */,
 				01BB3D96120C08A845B3BE73 /* ConversationTools.swift in Sources */,
 				3E70FB7EF2E5B3DC8D67F876 /* ConversationsScreen.swift in Sources */,
+				DAED00CD76036115810AFA4D /* Diagnostics.swift in Sources */,
 				D3124121F9C6BCE1C7D23E51 /* GenoaApp.swift in Sources */,
 				AA177D64C042C2DE681C0346 /* GenoaTheme.swift in Sources */,
 				8E02CA11EF25F25293B63F2B /* LiveSegmentSink.swift in Sources */,
@@ -379,6 +386,7 @@
 			files = (
 				71183D5215C687F931EA7F2B /* IntegrationTests.swift in Sources */,
 				0A0B54D8688820031B27BF88 /* LocalStoreTests.swift in Sources */,
+				E8863980DC20B0FC6DB017FF /* ReliabilityTests.swift in Sources */,
 				35A5D8C7F90C42FACB239E81 /* SessionVaultTests.swift in Sources */,
 				92DBDCA42C070E08826198D6 /* WatchSelectionTests.swift in Sources */,
 			);
@@ -469,7 +477,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = DCWP7J7692;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -491,7 +499,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.1.1;
+				MARKETING_VERSION = 0.1.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -573,7 +581,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = DCWP7J7692;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -589,7 +597,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.1.1;
+				MARKETING_VERSION = 0.1.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
