@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [master]
+    branches: [ master ]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -38,17 +38,17 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: backend/package-lock.json
-      - run: npm ci
-      - run: npm run check
+      - run: npx --yes npm@11.19.0 ci
+      - run: npx --yes npm@11.19.0 run check
       # Integration suites run against a disposable local Worker, D1 and R2.
       - run: echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)" > .dev.vars
-      - run: npm run migrate:local
+      - run: npx --yes npm@11.19.0 run migrate:local
       - name: Start local Worker
         run: |
           npx wrangler dev --port 8787 > wrangler.log 2>&1 &
           for _ in $(seq 1 60); do curl -sf http://localhost:8787/health && exit 0; sleep 2; done
           cat wrangler.log; exit 1
-      - run: npm test
+      - run: npx --yes npm@11.19.0 test
       - if: failure()
         run: tail -200 wrangler.log
 
@@ -66,11 +66,11 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: admin/package-lock.json
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
+      - run: npx --yes npm@11.19.0 ci
+      - run: npx --yes npm@11.19.0 run typecheck
+      - run: npx --yes npm@11.19.0 run lint
+      - run: npx --yes npm@11.19.0 test
+      - run: npx --yes npm@11.19.0 run build
 
   android:
     name: Android
@@ -107,7 +107,8 @@ jobs:
           }
           JSON
           fi
-      - run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+      - run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug
+          :app:assembleDebug :app:assembleDebugAndroidTest
       - if: failure()
         uses: actions/upload-artifact@v5
         with:
@@ -125,7 +126,7 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: backend/package-lock.json
-      - run: npm ci
+      - run: npx --yes npm@11.19.0 ci
         working-directory: backend
       # GenoaTests includes integration tests against an isolated local Worker on port 18888.
       - name: Start isolated test server
