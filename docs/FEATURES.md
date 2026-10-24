@@ -2,6 +2,8 @@
 
 Genoa is beta software. This page records what is implemented, how it is verified, and what still blocks a public release. Update it whenever verification changes.
 
+Dependency verification: the admin build, type checks, lint and session tests pass. The backend type check, local D1 migrations and Worker integration tests pass (23 passed, one skipped). Brand-source Pillow image fixtures pass in an isolated Python environment. Production services and device builds were not exercised.
+
 ## Features
 
 | Feature | Implementation | Verification |
